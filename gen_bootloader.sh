@@ -34,8 +34,8 @@ set_bootloader_grub_read_device_map() {
 set_bootloader_grub2() {
 	local GRUB_CONF
 	for candidate in \
-			"${BOOTDIR}/grub2/grub.cfg" \
 			"${BOOTDIR}/grub/grub.cfg" \
+			"${BOOTDIR}/grub2/grub.cfg" \
 			; do
 		if [[ -e "${candidate}" ]]; then
 			GRUB_CONF=${candidate}

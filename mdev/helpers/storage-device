@@ -1,0 +1,29 @@
+#!/bin/sh
+# License: Creative Commons Public Domain Dedication (CC0 1.0)
+#          <https://creativecommons.org/publicdomain/zero/1.0/>
+
+[ -z "${MDEV}" ] && exit 22
+
+DEV="$(echo ${MDEV} | sed 's/\(.*[a-z]\)\(.*\)/\1/')"
+PART="$(echo ${MDEV} | sed 's/\(.*[a-z]\)\(.*\)/\2/')"
+
+[ -f "/sys/class/block/${DEV}/device/vpd_pg83" ] || exit 6
+
+cat "/sys/class/block/${DEV}/device/vpd_pg83" 2>&1 >/dev/null || exit 15
+
+case $DEV in
+vd*)
+	TYPE=virtio
+	;;
+sd*)
+	TYPE=ata
+	;;
+*)
+	exit 33
+	;;
+esac
+
+NAME=$(echo "$(cat /sys/class/block/${DEV}/device/vpd_pg83)" | cut -c 36-95 | sed -e 's/ \+/_/g' -e "s/\(.*\)_/${TYPE}-\1${PART:+-part$PART}/")
+
+mkdir -p /dev/disk/by-id
+ln -sf "../../${MDEV}" "/dev/disk/by-id/${NAME}"
