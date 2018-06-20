@@ -81,7 +81,7 @@ overlayfs_modules_dir=mnt/cdrom
 
 LOOPS='/livecd.loop /zisofs /livecd.squashfs /image.squashfs /livecd.gcloop'
 
-DEFAULT_NFSOPTIONS="ro,nolock,rsize=1024,wsize=1024"
+DEFAULT_NFSOPTIONS="ro,nolock"
 
 # HWOPTS is the list of ALL options that take do/no prefixes, almost all of
 # which match a MODULES_* variable; it is ALSO the order of evaluation.
