@@ -722,7 +722,7 @@ append_dropbear(){
 }
 
 append_firmware() {
-	if [ -z "${FIRMWARE_FILES}" -a ! -d "${FIRMWARE_DIR}" ]
+	if [ ! -d "${FIRMWARE_DIR}" ]
 	then
 		gen_die "specified firmware directory (${FIRMWARE_DIR}) does not exist"
 	fi
@@ -736,10 +736,12 @@ append_firmware() {
 	then
 		OLD_IFS=$IFS
 		IFS=","
+		pushd ${FIRMWARE_DIR} >/dev/null
 		for i in ${FIRMWARE_FILES}
 		do
-			cp -L "${i}" ${TEMP}/initramfs-firmware-temp/lib/firmware/
+			cp -L --parents "${i}" ${TEMP}/initramfs-firmware-temp/lib/firmware/
 		done
+		popd >/dev/null
 		IFS=$OLD_IFS
 	else
 		cp -a "${FIRMWARE_DIR}"/* ${TEMP}/initramfs-firmware-temp/lib/firmware/
