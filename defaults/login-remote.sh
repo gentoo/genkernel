@@ -1,4 +1,5 @@
 #!/bin/sh
+# vim: set noexpandtab:
 
 . /etc/login-remote.conf
 . /etc/initrd.defaults
