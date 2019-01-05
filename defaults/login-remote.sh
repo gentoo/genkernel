@@ -45,8 +45,6 @@ openLUKSremote() {
 	while [ 1 ]
 	do
 		local gpg_cmd="" crypt_filter_ret=42
-		echo $-
-		sleep 1
 
 		if [ -e ${flag_opened} ]
 		then
