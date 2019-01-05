@@ -1472,12 +1472,12 @@ startLUKS() {
 		/sbin/ifconfig $(echo "${IP}" | awk -F":" '{print $6}' ) 0.0.0.0
 	fi
 
-	if [ -e /root.decrypted ]; then
-		rm /root.decrypted
+	if [ -e /ROOT.decrypted ]; then
+		rm /ROOT.decrypted
 	fi
 
-	if [ -e /swap.decrypted ]; then
-		rm /swap.decrypted
+	if [ -e /SWAP.decrypted ]; then
+		rm /SWAP.decrypted
 	fi
 }
 
