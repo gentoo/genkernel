@@ -78,7 +78,7 @@ openLUKSremote() {
 					crypt_filter "cryptsetup ${cryptsetup_options} --key-file ${LUKS_KEY} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
 					crypt_filter_ret=$?
 
-					if [ ${crypt_filter_ret} -ne 0 ]
+					if [ -f /sbin/gpg ] && [ ${crypt_filter_ret} -ne 0 ]
 					then
 						# 2nd try: gpg-encrypted keyfile
 						[ -e /dev/tty ] && mv /dev/tty /dev/tty.org
