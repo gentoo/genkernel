@@ -93,6 +93,13 @@ openLUKSremote() {
 						&& mv /dev/tty.org /dev/tty
 				fi
 
+				if [ ${crypt_filter_ret} -ne 0 ]
+				then
+					# 3rd try: user-submitted passphrase
+					crypt_filter "cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
+					crypt_filter_ret=$?
+				fi
+
 				if [ ${crypt_filter_ret} -eq 0 ]
 				then
 					touch ${flag_opened}
