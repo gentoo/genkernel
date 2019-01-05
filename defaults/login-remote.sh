@@ -104,6 +104,9 @@ openLUKSremote() {
 				then
 					touch ${flag_opened}
 					good_msg "LUKS device ${LUKS_DEVICE} opened" ${CRYPT_SILENT}
+					# Kill the cryptsetup process started by init
+					# so that the boot process can continue
+					killall cryptsetup
 					break
 				else
 					bad_msg "Failed to open LUKS device ${LUKS_DEVICE}" ${CRYPT_SILENT}

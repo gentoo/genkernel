@@ -1295,8 +1295,12 @@ openLUKS() {
 	while [ 1 ]
 	do
 		local gpg_cmd=""
+		if [ -e ${flag_opened} ]
+		then
+			good_msg "The LUKS device ${LUKS_DEVICE} meanwhile was opened by someone else."
+			break
 		# if crypt_silent=1 and some error occurs, enter shell quietly
-		if [ \( ${CRYPT_SILENT} -eq 1 \) -a \( \( \( ${DEV_ERROR} -eq 1 \) -o \( ${KEY_ERROR} -eq 1 \) \) -o \( ${KEYDEV_ERROR} -eq 1 \) \) ]
+		elif [ \( ${CRYPT_SILENT} -eq 1 \) -a \( \( \( ${DEV_ERROR} -eq 1 \) -o \( ${KEY_ERROR} -eq 1 \) \) -o \( ${KEYDEV_ERROR} -eq 1 \) \) ]
 		then
 			run_shell
 		elif [ ${DEV_ERROR} -eq 1 ]
@@ -1311,10 +1315,6 @@ openLUKS() {
 		then
 			prompt_user "LUKS_KEYDEV" "${LUKS_NAME} key device"
 			KEYDEV_ERROR=0
-		elif [ -e ${flag_opened} ]
-		then
-			good_msg "The LUKS device ${LUKS_DEVICE} meanwhile was opened by someone else."
-			break
 		else
 			LUKS_DEVICE=$(find_real_device "${LUKS_DEVICE}")
 
