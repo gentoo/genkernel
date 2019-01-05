@@ -77,20 +77,20 @@ openLUKSremote() {
 					# 1st try: unencrypted keyfile
 					crypt_filter "cryptsetup ${cryptsetup_options} --key-file ${LUKS_KEY} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
 					crypt_filter_ret=$?
+				fi
 
-					if [ -f /sbin/gpg ] && [ ${crypt_filter_ret} -ne 0 ]
-					then
-						# 2nd try: gpg-encrypted keyfile
-						[ -e /dev/tty ] && mv /dev/tty /dev/tty.org
-						mknod /dev/tty c 5 1
-						gpg_cmd="/sbin/gpg --logger-file /dev/null --quiet --decrypt ${LUKS_KEY} |"
-						crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} --key-file ${LUKS_KEY} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
-						crypt_filter_ret=$?
+				if [ -f /sbin/gpg ] && [ ${crypt_filter_ret} -ne 0 ]
+				then
+					# 2nd try: gpg-encrypted keyfile
+					[ -e /dev/tty ] && mv /dev/tty /dev/tty.org
+					mknod /dev/tty c 5 1
+					gpg_cmd="/sbin/gpg --logger-file /dev/null --quiet --decrypt ${LUKS_KEY} |"
+					crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} --key-file ${LUKS_KEY} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
+					crypt_filter_ret=$?
 
-						[ -e /dev/tty.org ] \
-							&& rm -f /dev/tty \
-							&& mv /dev/tty.org /dev/tty
-					fi
+					[ -e /dev/tty.org ] \
+						&& rm -f /dev/tty \
+						&& mv /dev/tty.org /dev/tty
 				fi
 
 				if [ ${crypt_filter_ret} -eq 0 ]
