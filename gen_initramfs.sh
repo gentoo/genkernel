@@ -1014,7 +1014,7 @@ append_splash() {
 	local res_param=""
 	[ -n "${SPLASH_RES}" ] && res_param="-r ${SPLASH_RES}"
 	splash_geninitramfs -c "${TDIR}" ${res_param} ${SPLASH_THEME} \
-		| gen_die "Failed to build splash cpio archive"
+		|| gen_die "Failed to build splash cpio archive"
 
 	if [ -e "/usr/share/splashutils/initrd.splash" ]
 	then
