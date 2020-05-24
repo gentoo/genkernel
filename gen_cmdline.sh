@@ -243,7 +243,7 @@ longusage() {
   echo "	--compress-initrd	Deprecated alias for --compress-initramfs"
   echo "	--no-compress-initrd	Deprecated alias for --no-compress-initramfs"
   echo "	--compress-initramfs-type=<arg>"
-  echo "				Compression type for initramfs (best, xz, lzma, bzip2, gzip, lzop)"
+  echo "				Compression type for initramfs (best, xz, lzma, bzip2, gzip, lzop, lz4)"
   echo "	--strip=(all|kernel|modules|none)"
   echo "				Strip debug symbols from none, all, installed kernel (obsolete) or"
   echo "				modules (default)"
