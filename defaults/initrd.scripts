@@ -1630,6 +1630,7 @@ start_volumes() {
 
 	if [ "${USE_ZFS}" = '1' ]
 	then
+		export ZPOOL_IMPORT_UDEV_TIMEOUT_MS=0
 		# Avoid race involving asynchronous module loading
 		if call_func_timeout waitForZFS 5
 		then
@@ -1679,6 +1680,7 @@ start_volumes() {
 				fi
 			fi
 		fi
+		unset ZPOOL_IMPORT_UDEV_TIMEOUT_MS
 	fi
 }
 
