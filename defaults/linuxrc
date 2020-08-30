@@ -2,7 +2,7 @@
 
 # shellcheck source=initrd.defaults
 . /etc/initrd.defaults
-# shellche2ck source=initrd.scripts
+# shellcheck source=initrd.scripts
 . /etc/initrd.scripts
 
 # shellcheck source=/dev/null
