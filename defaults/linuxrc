@@ -41,9 +41,6 @@ then
 	chmod 0750 /run/initramfs
 fi
 
-# Prevent superfluous printks from being printed to the console
-echo 1 > /proc/sys/kernel/printk
-
 if [ ! -s /etc/ld.so.cache ]
 then
 	# Looks like we were unable to run ldconfig during initramfs generation
@@ -437,6 +434,10 @@ do
 	esac
 done
 
+# Prevent superfluous printks from being printed to the console
+save_kmsg_lvl
+quiet_kmsg
+
 if [ -n "${NEW_CONSOLE}" ]
 then
 	# We cannot update console while processing CMDLINE because we
@@ -458,8 +459,6 @@ if [ "${GK_BOOTFONT_DISABLED}" = '0' -a -e /lib/console/font ]
 then
 	hash setfont >/dev/null 2>&1 && run setfont /lib/console/font -C ${CONSOLE} 2>&1
 fi
-
-quiet_kmsg
 
 if [ "${CDROOT}" = '0' ]
 then
@@ -1313,6 +1312,8 @@ then
 fi
 
 cleanup
+
+restore_kmsg_lvl
 
 udevsettle
 run udevadm control --exit
