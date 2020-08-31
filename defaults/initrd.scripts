@@ -2461,6 +2461,17 @@ sdelay() {
 	fi
 }
 
+save_kmsg_lvl() {
+	SAVED_PRINTK_LVL=$(cut -b1 /proc/sys/kernel/printk 2>/dev/null || echo 5)
+}
+
+restore_kmsg_lvl() {
+	[ -n "${QUIET}" ] || return
+	[ -n "${SAVED_PRINTK_LVL}" ] || return
+	echo "${SAVED_PRINTK_LVL}" > /proc/sys/kernel/printk \
+		&& log_msg "COMMAND: 'echo \"${SAVED_PRINTK_LVL}\" > /proc/sys/kernel/printk'"
+}
+
 quiet_kmsg() {
 	# if QUIET is set make the kernel less chatty
 	if [ -n "${QUIET}" ]
