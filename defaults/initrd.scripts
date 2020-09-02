@@ -1074,7 +1074,7 @@ mount_devfs() {
 	fi
 
 	# Options copied from /etc/init.d/udev-mount, should probably be kept in sync
-	if ! fs_type_in_use devtmpfs
+	if ! grep -Eqse "^[^ ]+ /dev ${devfs} " /proc/mounts
 	then
 		run mount -t ${devfs} -o "exec,nosuid,mode=0755,size=10M" udev /dev \
 			|| bad_msg "Failed to mount /dev as ${devfs}"
