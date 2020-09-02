@@ -1112,16 +1112,13 @@ log_msg() {
 		touch "${GK_INIT_LOG}" 2>/dev/null || return
 	fi
 
-	local log_prefix=
-	[ -n "${GK_INIT_LOG_PREFIX}" ] && log_prefix="${GK_INIT_LOG_PREFIX}: "
-
 	local msg=${1}
 
 	# Cannot use substitution because $msg could contain infinite color
 	# codes and substitution can't be greedy.
 	# Because Busybox's sed cannot deal with control characters, we
 	# have to get rid of all non-printable characters like "^[" first...
-	LANG=C echo "] ${log_prefix}${msg}" | sed \
+	LANG=C echo "] ${GK_INIT_LOG_PREFIX}${GK_INIT_LOG_PREFIX:+: }${msg}" | sed \
 		-e "s,[^[:print:]],,g" \
 		-e 's,\(\\033\)\?\[[0-9;]\+m,,g' \
 		| ts '[ %Y-%m-%d %H:%M:%.S' >> "${GK_INIT_LOG}"
