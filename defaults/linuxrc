@@ -228,6 +228,15 @@ do
 		crypt_swap_options=*)
 			CRYPT_SWAP_OPTIONS=$(echo ${CRYPT_SWAP_OPTIONS} ${x#*=} | sed -e 's/,/ /g')
 		;;
+		root_header=*)
+			CRYPT_ROOT_HEADER=${x#*=}
+		;;
+		root_headerdev=*)
+			CRYPT_ROOT_HEADERDEV=${x#*=}
+		;;
+		root_headerdev_fstype=*)
+			CRYPT_ROOT_HEADERDEV_FSTYPE=${x#*=}
+		;;
 		root_key=*)
 			CRYPT_ROOT_KEY=${x#*=}
 		;;
@@ -244,6 +253,15 @@ do
 				CRYPT_ROOT_OPTIONS="${CRYPT_ROOT_OPTIONS} --allow-discards"
 			fi
 			unset tmp_enabled
+		;;
+		swap_header=*)
+			CRYPT_SWAP_HEADER=${x#*=}
+		;;
+		swap_headerdev=*)
+			CRYPT_SWAP_HEADERDEV=${x#*=}
+		;;
+		swap_headerdev_fstype=*)
+			CRYPT_SWAP_HEADERDEV_FSTYPE=${x#*=}
 		;;
 		swap_key=*)
 			CRYPT_SWAP_KEY=${x#*=}
