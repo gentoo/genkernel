@@ -1295,85 +1295,23 @@ append_plymouth() {
     mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 
-    # get plymouth theme
+    # set plymouth theme
 	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
 	then
         PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default Plymouth theme!"
 	fi
-
 	if [ -z "${PLYMOUTH_THEME}" ]
 	then
 		PLYMOUTH_THEME=text
 	fi
 
-    # swap over to built in get_binpkg function?
+    print_info 1 "$(get_indent 1)>> Installing Plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
 
-    # create required directory structure
-    mkdir -p "${TDIR}"/usr/share/plymouth/themes || gen_die "Failed to create '${TDIR}/usr/share/plymouth/themes'!"
-    mkdir -p "${TDIR}"/etc/plymouth || gen_die "Failed to create '${TDIR}/etc/plymouth'!"
-    mkdir -p "${TDIR}"/bin || gen_die "Failed to create '${TDIR}/bin'!"
-    mkdir -p "${TDIR}"/sbin || gen_die "Failed to create '${TDIR}/sbin'!"
-    mkdir -p "${TDIR}"/usr/bin || gen_die "Failed to create '${TDIR}/usr/bin'!"
-    mkdir -p "${TDIR}"/usr/sbin || gen_die "Failed to create '${TDIR}/usr/sbin'!"
+    /usr/libexec/plymouth/plymouth-generate-initrd -t "${TDIR}" \
+        || gen_die "Failed to build Plymouth cpio archive!"
 
-    # get plugin for the specified theme
-    local theme_dir="/usr/share/plymouth/themes"
-    local plymouth_module="${theme_dir}/${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth"
-    local plugin=$(grep "^ModuleName=" "${plymouth_module}" | cut -d= -f2-)
-    local plugin_binary
-    if [ -n "${plugin}" ]; then
-        plugin_binary="$(plymouth --get-splash-plugin-path)/${plugin}.so"
-    fi
-
-    print_info 1 "$(get_indent 1)>> Installing plymouth [ using the '${PLYMOUTH_THEME}' theme and '${plugin}' plugin ]..."
-
-    # copy over the theme
-    for theme in text details ${PLYMOUTH_THEME}; do
-        cp -r "${theme_dir}/${theme}" \
-            "${TDIR}${theme_dir}/" || \
-            gen_die "Failed to copy '${theme_dir}/${theme}'!"
-    done
-    cp /usr/share/plymouth/{bizcom.png,plymouthd.defaults} \
-        "${TDIR}/usr/share/plymouth/" || \
-        gen_die "Failed to copy bizcom.png and plymouthd.defaults!"
-
-    # config setup (the second one seems broken to me)
-    echo -en "[Daemon]\nTheme=${PLYMOUTH_THEME}\n" > \
-        "${TDIR}/etc/plymouth/plymouthd.conf" || \
-        gen_die "Failed to create '/etc/plymouth/plymouthd.conf'!"
-    ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" \
-        "${TDIR}${theme_dir}/default.plymouth" || \
-        gen_die "Failed to set the default plymouth theme!"
-
-    # copy over the binaries
-    local libs=(
-        "/usr/lib*/libply-splash-core.so.*"
-        "/usr/lib*/libply-splash-graphics.so.*"
-        "/usr/lib*/plymouth/text.so"
-        "/usr/lib*/plymouth/details.so"
-        "/usr/lib*/plymouth/renderers/frame-buffer.so"
-        "/usr/lib*/plymouth/renderers/drm.so"
-        "${plugin_binary}"
-    )
-
-    # lib64 must take precedence or the symlinks will be fubared
-    local slib lib final_lib final_libs=()
-    for slib in ${libs[@]}; do
-        lib=( ${slib} )
-        final_lib="${lib[0]}"
-        final_libs+=( "${final_lib}" )
-    done
-
-    local plymouthd_bin="/sbin/plymouthd"
-    [ ! -e "${plymouthd_bin}" ] && \
-        plymouthd_bin="/usr/sbin/plymouthd"
-
-    local plymouth_bin="/bin/plymouth"
-    [ ! -e "${plymouth_bin}" ] && \
-        plymouth_bin="/usr/bin/plymouth"
-
-    copy_binaries "${TDIR}" ${plymouthd_bin} ${plymouth_bin} ${final_libs[@]} \
-        || gen_die "Failed to copy plymouth binaries!"
+    rm -f "${TDIR}"/lib*/{ld*,libc*,libdl*,libm*,libz*,libpthread*} \
+        || gen_die "Failed to clean up Plymouth cpio archive!"
 
     # clean up
     cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
