@@ -483,6 +483,7 @@ append_base_layout() {
 	isTrue "${UNIONFS}" && build_parameters+=( --unionfs ) || build_parameters+=( --no-unionfs )
 	isTrue "${ZFS}" && build_parameters+=( --zfs ) || build_parameters+=( --no-zfs )
 	isTrue "${SPLASH}" && build_parameters+=( --splash ) || build_parameters+=( --no-splash )
+	isTrue "${PLYMOUTH}" && build_parameters+=( --plymouth ) || build_parameters+=( --no-plymouth )
 	isTrue "${STRACE}" && build_parameters+=( --strace ) || build_parameters+=( --no-strace )
 	isTrue "${GPG}" && build_parameters+=( --gpg ) || build_parameters+=( --no-gpg )
 	isTrue "${LUKS}" && build_parameters+=( --luks ) || build_parameters+=( --no-luks )
@@ -1283,9 +1284,184 @@ append_splash() {
 	fi
 }
 
-append_strace() {
-	local PN=strace
+append_plymouth() {
+	local PN=plymouth
 	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+    mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+    # get plymouth theme
+	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
+	then
+        PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default Plymouth theme!"
+	fi
+
+	if [ -z "${PLYMOUTH_THEME}" ]
+	then
+		PLYMOUTH_THEME=text
+	fi
+
+    # swap over to built in get_binpkg function?
+
+    # create required directory structure
+    mkdir -p "${TDIR}"/usr/share/plymouth/themes || gen_die "Failed to create '${TDIR}/usr/share/plymouth/themes'!"
+    mkdir -p "${TDIR}"/etc/plymouth || gen_die "Failed to create '${TDIR}/etc/plymouth'!"
+    mkdir -p "${TDIR}"/bin || gen_die "Failed to create '${TDIR}/bin'!"
+    mkdir -p "${TDIR}"/sbin || gen_die "Failed to create '${TDIR}/sbin'!"
+    mkdir -p "${TDIR}"/usr/bin || gen_die "Failed to create '${TDIR}/usr/bin'!"
+    mkdir -p "${TDIR}"/usr/sbin || gen_die "Failed to create '${TDIR}/usr/sbin'!"
+
+    # get plugin for the specified theme
+    local theme_dir="/usr/share/plymouth/themes"
+    local plymouth_module="${theme_dir}/${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth"
+    local plugin=$(grep "^ModuleName=" "${plymouth_module}" | cut -d= -f2-)
+    local plugin_binary
+    if [ -n "${plugin}" ]; then
+        plugin_binary="$(plymouth --get-splash-plugin-path)/${plugin}.so"
+    fi
+
+    print_info 1 "$(get_indent 1)>> Installing plymouth [ using the '${PLYMOUTH_THEME}' theme and '${plugin}' plugin ]..."
+
+    # copy over the theme
+    for theme in text details ${PLYMOUTH_THEME}; do
+        cp -r "${theme_dir}/${theme}" \
+            "${TDIR}${theme_dir}/" || \
+            gen_die "Failed to copy '${theme_dir}/${theme}'!"
+    done
+    cp /usr/share/plymouth/{bizcom.png,plymouthd.defaults} \
+        "${TDIR}/usr/share/plymouth/" || \
+        gen_die "Failed to copy bizcom.png and plymouthd.defaults!"
+
+    # config setup (the second one seems broken to me)
+    echo -en "[Daemon]\nTheme=${PLYMOUTH_THEME}\n" > \
+        "${TDIR}/etc/plymouth/plymouthd.conf" || \
+        gen_die "Failed to create '/etc/plymouth/plymouthd.conf'!"
+    ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" \
+        "${TDIR}${theme_dir}/default.plymouth" || \
+        gen_die "Failed to set the default plymouth theme!"
+
+    # copy over the binaries
+    local libs=(
+        "/usr/lib*/libply-splash-core.so.*"
+        "/usr/lib*/libply-splash-graphics.so.*"
+        "/usr/lib*/plymouth/text.so"
+        "/usr/lib*/plymouth/details.so"
+        "/usr/lib*/plymouth/renderers/frame-buffer.so"
+        "/usr/lib*/plymouth/renderers/drm.so"
+        "${plugin_binary}"
+    )
+
+    # lib64 must take precedence or the symlinks will be fubared
+    local slib lib final_lib final_libs=()
+    for slib in ${libs[@]}; do
+        lib=( ${slib} )
+        final_lib="${lib[0]}"
+        final_libs+=( "${final_lib}" )
+    done
+
+    local plymouthd_bin="/sbin/plymouthd"
+    [ ! -e "${plymouthd_bin}" ] && \
+        plymouthd_bin="/usr/sbin/plymouthd"
+
+    local plymouth_bin="/bin/plymouth"
+    [ ! -e "${plymouth_bin}" ] && \
+        plymouth_bin="/usr/bin/plymouth"
+
+    copy_binaries "${TDIR}" ${plymouthd_bin} ${plymouth_bin} ${final_libs[@]} \
+        || gen_die "Failed to copy plymouth binaries!"
+
+    # clean up
+    cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+    log_future_cpio_content
+    find . -print | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+        || gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
+append_drm() {
+    local MOD_EXT=".ko"
+
+    print_info 2 "initramfs: >> Appending drm drivers..."
+    if [ -n ${INSTALL_MOD_PATH} ]; then
+        cd ${INSTALL_MOD_PATH}
+    else
+        cd /
+    fi
+
+    local PN=drm
+    local TDIR="${TEMP}/initramfs-${PN}-${KV}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+    mkdir -p "${TDIR}"/lib/modules/${KV} || gen_die "Failed to create '${TDIR}/lib/modules/${KV}'!"
+
+    local mods_path="./lib/modules/${KV}"
+    local drm_path="${mods_path}/kernel/drivers/gpu/drm"
+    local modules
+    if [ -d "${drm_path}" ]; then
+        modules=$(strip_mod_paths $(find "${drm_path}" -name "*${MOD_EXT}"))
+    else
+        print_warning 2 "Warning :: no drm modules in drivers/gpu/drm..."
+    fi
+
+    rm -f "${TEMP}/moddeps"
+    gen_deps ${modules}
+    if [ -f "${TEMP}/moddeps" ]; then
+        modules=$(cat "${TEMP}/moddeps" | sort | uniq)
+    else
+        print_warning 2 "Warning :: module dependencies not generated..."
+    fi
+
+    local mod i fws fw
+    for i in ${modules}
+    do
+        mod=$(find "${mods_path}" -name "${i}${MOD_EXT}" 2>/dev/null| head -n 1)
+        if [ -z ${mod} ]; then
+            print_warning 2 "Warning :: ${i}${MOD_EXT} not found; skipping..."
+            continue
+        fi
+
+        print_info 2 "initramfs: >> Copying ${mod}..."
+        cp -ax --parents "${mod}" ${TDIR}
+        fws=( $(get_firmware_files "${mod}") )
+        for fw in "${fws[@]}"; do
+            # we must use /lib/firmware because kernel may not
+            # contain all the firmware files and /lib/firmware is
+            # expected to be more up-to-date.
+            print_info 2 "initramfs: >> Copying firmware ${fw}..."
+            cp -ax --parents "/lib/firmware/${fw}" \
+                ${TDIR}
+        done
+    done
+
+    # clean up
+    cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+    log_future_cpio_content
+    find . -print | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+        || gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
+append_strace() {
+    local PN=strace
+    local TDIR="${TEMP}/initramfs-${PN}-temp"
 	if [ -d "${TDIR}" ]
 	then
 		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
@@ -2003,10 +2179,16 @@ create_initramfs() {
 	append_data 'modprobed'
 	append_data 'multipath' "${MULTIPATH}"
 	append_data 'splash' "${SPLASH}"
+    append_data 'plymouth' "${PLYMOUTH}"
 	append_data 'strace' "${STRACE}"
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"
 	append_data 'zfs' "${ZFS}"
+
+    if isTrue "${PLYMOUTH}"
+    then
+        append_data 'drm'
+    fi
 
 	if isTrue "${ZFS}"
 	then

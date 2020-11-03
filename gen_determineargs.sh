@@ -352,6 +352,7 @@ determine_real_args() {
 	set_config_with_override STRING MODPROBEDIR                           CMD_MODPROBEDIR                           "/etc/modprobe.d"
 
 	set_config_with_override BOOL   SPLASH                                CMD_SPLASH                                "no"
+    set_config_with_override BOOL   PLYMOUTH                              CMD_PLYMOUTH                              "no"
 	set_config_with_override BOOL   CLEAR_CACHEDIR                        CMD_CLEAR_CACHEDIR                        "no"
 	set_config_with_override BOOL   POSTCLEAR                             CMD_POSTCLEAR                             "no"
 	set_config_with_override BOOL   MRPROPER                              CMD_MRPROPER                              "yes"
@@ -983,6 +984,11 @@ determine_real_args() {
 				gen_die "splash_geninitramfs is required for --splash but was not found!"
 			fi
 		fi
+
+        if isTrue "${PLYMOUTH}" && isTrue "${SPLASH}"
+        then
+            gen_die "--plymouth and --splash are mutually exclusive!"
+        fi
 
 		if isTrue "${SSH}"
 		then
