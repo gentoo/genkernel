@@ -1307,7 +1307,7 @@ append_plymouth() {
 
     print_info 1 "$(get_indent 1)>> Installing Plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
 
-    /usr/libexec/plymouth/plymouth-generate-initrd -t "${TDIR}" \
+    /usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
         || gen_die "Failed to build Plymouth cpio archive!"
 
     rm -f "${TDIR}"/lib*/{ld*,libc*,libdl*,libm*,libz*,libpthread*} \
