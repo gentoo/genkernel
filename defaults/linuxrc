@@ -515,8 +515,6 @@ then
 	FIRSTMODS="${FIRSTMODS} crc32_generic"
 fi
 
-splash 'init'
-
 cmdline_hwopts
 
 # Mount devfs
@@ -524,6 +522,8 @@ mount_devfs
 
 # Mount sysfs
 mount_sysfs
+
+splash 'init'
 
 if [ -e /proc/sys/kernel/hotplug ]
 then
