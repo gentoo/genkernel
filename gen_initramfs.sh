@@ -1316,7 +1316,7 @@ append_plymouth() {
     # clean up
     cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
     log_future_cpio_content
-    find . -print | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+    find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
         || gen_die "Failed to append ${PN} to cpio!"
 
 	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
