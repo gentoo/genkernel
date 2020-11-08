@@ -1326,71 +1326,6 @@ append_plymouth() {
 	fi
 }
 
-# append_drm() {
-    # local PN=drm
-    # local TDIR="${TEMP}/initramfs-${PN}-${KV}-temp"
-	# if [ -d "${TDIR}" ]
-	# then
-		# rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	# fi
-
-    # mkdir -p "${TDIR}"/lib/modules/${KV} || gen_die "Failed to create '${TDIR}/lib/modules/${KV}'!"
-
-    # local MOD_EXT="$(modules_kext)"
-    # print_info 2 "initramfs: >> Appending drm drivers..."
-
-    # local mods_path="./lib/modules/${KV}"
-    # local drm_path="${mods_path}/kernel/drivers/gpu/drm"
-    # local modules
-    # if [ -d "${drm_path}" ]; then
-        # modules=$(strip_mod_paths $(find "${drm_path}" -name "*${MOD_EXT}"))
-    # else
-        # print_warning 2 "Warning :: no drm modules in drivers/gpu/drm..."
-
-
-    # rm -f "${TEMP}/moddeps"
-    # gen_deps ${modules}
-    # if [ -f "${TEMP}/moddeps" ]; then
-        # modules=$(cat "${TEMP}/moddeps" | sort | uniq)
-    # else
-        # print_warning 2 "Warning :: module dependencies not generated..."
-    # fi
-
-    # local mod i fws fw
-    # for i in ${modules}
-    # do
-        # mod=$(find "${mods_path}" -name "${i}${MOD_EXT}" 2>/dev/null| head -n 1)
-        # if [ -z ${mod} ]; then
-            # print_warning 2 "Warning :: ${i}${MOD_EXT} not found; skipping..."
-            # continue
-        # fi
-
-        # print_info 2 "initramfs: >> Copying ${mod}..."
-        # cp -ax --parents "${mod}" ${TDIR}
-        # fws=( $(get_firmware_files "${mod}") )
-        # for fw in "${fws[@]}"; do
-            # # we must use /lib/firmware because kernel may not
-            # # contain all the firmware files and /lib/firmware is
-            # # expected to be more up-to-date.
-            # print_info 2 "initramfs: >> Copying firmware ${fw}..."
-            # cp -ax --parents "/lib/firmware/${fw}" \
-                # ${TDIR}
-        # done
-    # done
-
-    # # clean up
-    # cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-    # log_future_cpio_content
-    # find . -print | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-        # || gen_die "Failed to append ${PN} to cpio!"
-
-	# cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	# if isTrue "${CLEANUP}"
-	# then
-		# rm -rf "${TDIR}"
-	# fi
-# }
-
 append_strace() {
     local PN=strace
     local TDIR="${TEMP}/initramfs-${PN}-temp"
@@ -2116,11 +2051,6 @@ create_initramfs() {
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"
 	append_data 'zfs' "${ZFS}"
-
-    # if isTrue "${PLYMOUTH}"
-    # then
-        # append_data 'drm'
-    # fi
 
 	if isTrue "${ZFS}"
 	then
