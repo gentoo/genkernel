@@ -188,6 +188,20 @@ do
 			NEW_CONSOLE=$(basename ${NEW_CONSOLE})
 			NEW_CONSOLE=${NEW_CONSOLE%%,*}
 		;;
+        splash)
+            PLYMOUTH_BIN="/usr/bin/plymouth"
+            PLYMOUTHD_BIN="/usr/sbin/plymouthd"
+            if [ -e ${PLYMOUTH_BIN} ] -a [ -e ${PLYMOUTHD_BIN} ]
+            then
+                PLYMOUTH=1
+            fi
+        ;;
+        splash=*)
+            if [ -e /etc/initrd.splash ]
+            then
+                FBSPLASH=1
+            fi
+        ;;
 		# /dev/md
 		lvmraid=*)
 			RAID_DEVICES="${x#*=}"
@@ -523,7 +537,7 @@ mount_devfs
 # Mount sysfs
 mount_sysfs
 
-splash 'init'
+splashCmd 'init'
 
 if [ -e /proc/sys/kernel/hotplug ]
 then
@@ -1270,6 +1284,8 @@ fi # if [ "${CDROOT}" = '1' ]
 # Re-run to ensure $NEWROOT/etc/initramfs.mounts was processed at least once
 process_initramfs_mounts
 
+splashCmd 'hasroot' "${NEW_ROOT}"
+
 # Execute script on the cdrom just before boot to update things if necessary
 cdupdate
 
@@ -1342,7 +1358,7 @@ else
 fi
 
 # If we get here, something bad has happened
-splash 'verbose'
+splashCmd 'verbose'
 
 bad_msg "A fatal error has occured since ${init} did not"
 bad_msg "boot correctly. Trying to open a shell ..."
