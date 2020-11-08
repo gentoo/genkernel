@@ -1203,7 +1203,7 @@ crypt_filter() {
 	if [ "${CRYPT_SILENT}" = '1' ]
 	then
 		eval run ${1} >/dev/null 2>&1
-    elif [ "${PLYMOUTH}" = '1' -a plymouth_running ]
+    elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
     then
         local ply_cmd=${2}
         ${PLYMOUTH_BIN} ask-for-password --prompt "LUKS password: " \
