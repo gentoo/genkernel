@@ -1327,15 +1327,6 @@ append_plymouth() {
 }
 
 append_drm() {
-    local MOD_EXT=".ko"
-
-    print_info 2 "initramfs: >> Appending drm drivers..."
-    if [ -n ${INSTALL_MOD_PATH} ]; then
-        cd ${INSTALL_MOD_PATH}
-    else
-        cd /
-    fi
-
     local PN=drm
     local TDIR="${TEMP}/initramfs-${PN}-${KV}-temp"
 	if [ -d "${TDIR}" ]
@@ -1345,6 +1336,9 @@ append_drm() {
 
     mkdir -p "${TDIR}"/lib/modules/${KV} || gen_die "Failed to create '${TDIR}/lib/modules/${KV}'!"
 
+    local MOD_EXT="$(modules_kext)"
+    print_info 2 "initramfs: >> Appending drm drivers..."
+
     local mods_path="./lib/modules/${KV}"
     local drm_path="${mods_path}/kernel/drivers/gpu/drm"
     local modules
@@ -1352,7 +1346,7 @@ append_drm() {
         modules=$(strip_mod_paths $(find "${drm_path}" -name "*${MOD_EXT}"))
     else
         print_warning 2 "Warning :: no drm modules in drivers/gpu/drm..."
-    fi
+
 
     rm -f "${TEMP}/moddeps"
     gen_deps ${modules}
@@ -2123,10 +2117,10 @@ create_initramfs() {
 	append_data 'xfsprogs' "${XFSPROGS}"
 	append_data 'zfs' "${ZFS}"
 
-    if isTrue "${PLYMOUTH}"
-    then
-        append_data 'drm'
-    fi
+    # if isTrue "${PLYMOUTH}"
+    # then
+        # append_data 'drm'
+    # fi
 
 	if isTrue "${ZFS}"
 	then
