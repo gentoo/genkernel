@@ -1009,7 +1009,7 @@ run_emergency_shell() {
 }
 
 run_shell() {
-    splashCmd 'verbose' >/dev/null &
+	splashCmd 'verbose' >/dev/null &
 
 	if [ -f "${GK_USERINTERACTION_DISABLED_STATEFILE}" ]
 	then
@@ -1203,14 +1203,14 @@ crypt_filter() {
 	if [ "${CRYPT_SILENT}" = '1' ]
 	then
 		eval run ${1} >/dev/null 2>&1
-    elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
-    then
-        local ply_cmd=${2}
-        ${PLYMOUTH_BIN} ask-for-password --prompt "LUKS password: " \
-            --number-of-tries=3 --command="$ply_cmd"
-        res=$?
-        return ${res}
-    else
+	elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
+	then
+		local ply_cmd=${2}
+		${PLYMOUTH_BIN} ask-for-password --prompt "LUKS password: " \
+			--number-of-tries=3 --command="$ply_cmd"
+		res=$?
+		return ${res}
+	else
 		splashCmd 'verbose' >/dev/null &
 		eval run ${1}
 		res=$?
@@ -1287,7 +1287,7 @@ prompt_user() {
 	fi
 	[ -n "${3}" ] && local explnt=" or : ${3}" || local explnt="."
 
-    splashCmd 'verbose' >/dev/null &
+	splashCmd 'verbose' >/dev/null &
 	bad_msg "Could not find the ${2} in ${oldvalue}${explnt}"
 
 	if [ -f "${GK_USERINTERACTION_DISABLED_STATEFILE}" ]
@@ -1371,7 +1371,7 @@ prompt_user() {
 			;;
 	esac
 
-    splashCmd 'quiet' >/dev/null &
+	splashCmd 'quiet' >/dev/null &
 }
 
 cmdline_hwopts() {
@@ -1531,68 +1531,68 @@ splash() {
 }
 
 splashCmd() {
-    case "${1}" in
-        init)
-        if [ ${FBSPLASH} = '1' ]
-        then
-            splash 'init'
-        elif [ ${PLYMOUTH} = '1' ]
-        then
-            plymouthInit
-        fi
-        ;;
+	case "${1}" in
+		init)
+		if [ ${FBSPLASH} = '1' ]
+		then
+			splash 'init'
+		elif [ ${PLYMOUTH} = '1' ]
+		then
+			plymouthInit
+		fi
+		;;
 
-        verbose)
-        if [ ${FBSPLASH} = '1' ]
-        then
-            splash 'verbose'
-        elif [ ${PLYMOUTH} = '1' ]
-        then
-            plymouth_running && "${PLYMOUTH_BIN}" --hide-splash
-        fi
-        ;;
+		verbose)
+		if [ ${FBSPLASH} = '1' ]
+		then
+			splash 'verbose'
+		elif [ ${PLYMOUTH} = '1' ]
+		then
+			plymouth_running && "${PLYMOUTH_BIN}" --hide-splash
+		fi
+		;;
 
-        set_msg)
-        if [ ${FBSPLASH} = '1' ]
-        then
-            splash 'set_msg' "${2}"
-        elif [ ${PLYMOUTH} = '1' ]
-        then
-            plymouth_running && "${PLYMOUTH_BIN}" --update="${2}"
-        fi
-        ;;
+		set_msg)
+		if [ ${FBSPLASH} = '1' ]
+		then
+			splash 'set_msg' "${2}"
+		elif [ ${PLYMOUTH} = '1' ]
+		then
+			plymouth_running && "${PLYMOUTH_BIN}" --update="${2}"
+		fi
+		;;
 
-        quiet)
-        plymouth_running && "${PLYMOUTH_BIN}" --show-splash
-        ;;
+		quiet)
+		plymouth_running && "${PLYMOUTH_BIN}" --show-splash
+		;;
 
-        hasroot)
-        plymouth_running && "${PLYMOUTH_BIN}" --newroot="${2}"
-        ;;
+		hasroot)
+		plymouth_running && "${PLYMOUTH_BIN}" --newroot="${2}"
+		;;
     esac
 }
 
 plymouth_running() {
-    [ -n "${PLYMOUTH_FAIL}" ] && return 1
-    "${PLYMOUTH_BIN}" --ping 2>/dev/null && return 0
-    return 1
+	[ -n "${PLYMOUTH_FAIL}" ] && return 1
+	"${PLYMOUTH_BIN}" --ping 2>/dev/null && return 0
+	return 1
 }
 
 plymouthInit() {
-    good_msg "Starting Plymouth..."
-    mkdir -p /run/plymouth || return 1
+	good_msg "Starting Plymouth..."
+	mkdir -p /run/plymouth || return 1
 
-    # Make sure that udev is done loading tty and drm
-    udevadm trigger --action=add --attr-match=class=0x030000 >/dev/null 2>&1
-    udevadm trigger --action=add --subsystem-match=graphics \
-        --subsystem-match=drm --subsystem-match=tty >/dev/null 2>&1
-    udevadm settle 2>&1
+	# Make sure that udev is done loading tty and drm
+	udevadm trigger --action=add --attr-match=class=0x030000 >/dev/null 2>&1
+	udevadm trigger --action=add --subsystem-match=graphics \
+		--subsystem-match=drm --subsystem-match=tty >/dev/null 2>&1
+	udevadm settle 2>&1
 
-    "${PLYMOUTHD_BIN}" --mode=boot --attach-to-session \
-        --pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1; }
+	"${PLYMOUTHD_BIN}" --mode=boot --attach-to-session \
+		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1; }
 
-    plymouth_running && "${PLYMOUTH_BIN}" --show-splash
-    good_msg "Plymouth initialized"
+	plymouth_running && "${PLYMOUTH_BIN}" --show-splash
+	good_msg "Plymouth initialized"
 }
 
 start_volumes() {
@@ -1861,7 +1861,7 @@ openLUKS() {
 		local cryptsetup_options=''
 
 		local gpg_cmd=""
-        local ply_cmd=""
+		local ply_cmd=""
 		if [ -e "${OPENED_LOCKFILE}" ]
 		then
 			good_msg "The LUKS device ${LUKS_DEVICE} meanwhile was opened by someone else."
@@ -1984,26 +1984,26 @@ openLUKS() {
 							run mknod /dev/tty c 5 1
 							cryptsetup_options="${cryptsetup_options} -d -"
 							gpg_cmd="gpg --logger-file /dev/null --quiet --decrypt ${mntkey}${LUKS_KEY} | "
-                            ply_cmd="gpg --logger-file /dev/null --quiet --passphrase-fd 0 --batch --not-tty --decrypt ${mntkey}${LUKS_KEY} | "
+							ply_cmd="gpg --logger-file /dev/null --quiet --passphrase-fd 0 --batch --not-tty --decrypt ${mntkey}${LUKS_KEY} | "
 						fi
 					else
 						cryptsetup_options="${cryptsetup_options} -d ${mntkey}${LUKS_KEY}"
 					fi
 				fi
 				# At this point, keyfile or not, we're ready!
-                if [ "${PLYMOUTH}" = '1' ]
-                then
-                    ply_cmd="${ply_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
-                    local ply_cmd_file="$(mktemp -t "ply_cmd.XXXXXX")"
-                    printf '#!/bin/sh\n%s\n' "${ply_cmd}" > "${ply_cmd_file}"
-                    chmod 500 "${ply_cmd_file}"
-                fi
+				if [ "${PLYMOUTH}" = '1' ]
+				then
+					ply_cmd="${ply_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
+					local ply_cmd_file="$(mktemp -t "ply_cmd.XXXXXX")"
+					printf '#!/bin/sh\n%s\n' "${ply_cmd}" > "${ply_cmd_file}"
+					chmod 500 "${ply_cmd_file}"
+				fi
 				crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}" "${ply_cmd_file}"
 				crypt_filter_ret=$?
-                if [ "${PLYMOUTH}" = '1' ]
-                then
-                    rm -f "${ply_cmd_file}"
-                fi
+				if [ "${PLYMOUTH}" = '1' ]
+				then
+					rm -f "${ply_cmd_file}"
+				fi
 
 				[ -e /dev/tty.org ] \
 					&& run rm -f /dev/tty \

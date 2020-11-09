@@ -1292,32 +1292,32 @@ append_plymouth() {
 		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
 	fi
 
-    mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 
-    # set plymouth theme
+	# set plymouth theme
 	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
 	then
-        PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default Plymouth theme!"
+		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default Plymouth theme!"
 	fi
 	if [ -z "${PLYMOUTH_THEME}" ]
 	then
 		PLYMOUTH_THEME=text
 	fi
 
-    print_info 1 "$(get_indent 1)>> Installing Plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
+	print_info 1 "$(get_indent 1)>> Installing Plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
 
-    /usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
-        || gen_die "Failed to build Plymouth cpio archive!"
+	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
+		|| gen_die "Failed to build Plymouth cpio archive!"
 
-    rm -f "${TDIR}"/lib*/{ld*,libc*,libdl*,libm*,libz*,libpthread*} \
-        || gen_die "Failed to clean up Plymouth cpio archive!"
+	rm -f "${TDIR}"/lib*/{ld*,libc*,libdl*,libm*,libz*,libpthread*} \
+		|| gen_die "Failed to clean up Plymouth cpio archive!"
 
-    # clean up
-    cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-    log_future_cpio_content
-    find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-        || gen_die "Failed to append ${PN} to cpio!"
+	# clean up
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
 
 	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
 	if isTrue "${CLEANUP}"
@@ -1327,8 +1327,8 @@ append_plymouth() {
 }
 
 append_strace() {
-    local PN=strace
-    local TDIR="${TEMP}/initramfs-${PN}-temp"
+	local PN=strace
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
 	if [ -d "${TDIR}" ]
 	then
 		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
@@ -2046,7 +2046,7 @@ create_initramfs() {
 	append_data 'modprobed'
 	append_data 'multipath' "${MULTIPATH}"
 	append_data 'splash' "${SPLASH}"
-    append_data 'plymouth' "${PLYMOUTH}"
+	append_data 'plymouth' "${PLYMOUTH}"
 	append_data 'strace' "${STRACE}"
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"

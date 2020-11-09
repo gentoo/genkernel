@@ -188,20 +188,20 @@ do
 			NEW_CONSOLE=$(basename ${NEW_CONSOLE})
 			NEW_CONSOLE=${NEW_CONSOLE%%,*}
 		;;
-        splash)
-            PLYMOUTH_BIN="/usr/bin/plymouth"
-            PLYMOUTHD_BIN="/usr/sbin/plymouthd"
-            if [ -e ${PLYMOUTH_BIN} ] -a [ -e ${PLYMOUTHD_BIN} ]
-            then
-                PLYMOUTH=1
-            fi
-        ;;
-        splash=*)
-            if [ -e /etc/initrd.splash ]
-            then
-                FBSPLASH=1
-            fi
-        ;;
+		splash)
+			PLYMOUTH_BIN="/usr/bin/plymouth"
+			PLYMOUTHD_BIN="/usr/sbin/plymouthd"
+			if [ -e ${PLYMOUTH_BIN} ] -a [ -e ${PLYMOUTHD_BIN} ]
+			then
+				PLYMOUTH=1
+			fi
+		;;
+		splash=*)
+			if [ -e /etc/initrd.splash ]
+			then
+				FBSPLASH=1
+			fi
+		;;
 		# /dev/md
 		lvmraid=*)
 			RAID_DEVICES="${x#*=}"
