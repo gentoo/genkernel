@@ -1298,17 +1298,20 @@ append_plymouth() {
 	# set plymouth theme
 	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
 	then
-		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default ${PN} theme!"
+		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default Plymouth theme!"
 	fi
 	if [ -z "${PLYMOUTH_THEME}" ]
 	then
 		PLYMOUTH_THEME=text
 	fi
 
-	print_info 1 "$(get_indent 1)>> Installing ${PN} [ using the '${PLYMOUTH_THEME}' theme ]..."
+	print_info 1 "$(get_indent 1)>> Installing Plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
 
 	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
-		|| gen_die "Failed to build ${PN} cpio archive!"
+		|| gen_die "Failed to build Plymouth cpio archive!"
+
+	rm -f "${TDIR}"/lib*/{ld*,libc*,libdl*,libm*,libz*,libpthread*} \
+		|| gen_die "Failed to clean up Plymouth cpio archive!"
 
 	# clean up
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
