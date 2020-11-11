@@ -1310,7 +1310,7 @@ append_plymouth() {
 	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
 		|| gen_die "Failed to build plymouth cpio archive!"
 
-	rm -f "${TDIR}"/lib*/{ld*,libc*,libm*,libz*,libpthread*} \
+	rm -f "${TDIR}"/lib*/{ld*,libc*,libz*,libpthread*} \
 		|| gen_die "Failed to clean up plymouth cpio archive!"
 
 	# clean up
