@@ -537,8 +537,6 @@ mount_devfs
 # Mount sysfs
 mount_sysfs
 
-splashCmd 'init'
-
 if [ -e /proc/sys/kernel/hotplug ]
 then
 	log_msg "COMMAND: 'echo "" > /proc/sys/kernel/hotplug'"
@@ -607,6 +605,9 @@ else
 fi
 
 cd /
+
+# start splash; plymouth must start after udev
+splashCmd 'init'
 
 # Start iSCSI
 if hash iscsistart >/dev/null 2>&1
