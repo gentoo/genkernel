@@ -1205,7 +1205,7 @@ crypt_filter() {
 		eval run ${1} >/dev/null 2>&1
 	elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
 	then
-		eval run plymouth ask-for-password --prompt "LUKS password: " \
+		run plymouth ask-for-password --prompt "LUKS password: " \
 			--number-of-tries=3 --command="${2}"
 		res=$?
 		return ${res}
@@ -1983,7 +1983,7 @@ openLUKS() {
 							run mknod /dev/tty c 5 1
 							cryptsetup_options="${cryptsetup_options} -d -"
 							gpg_cmd="gpg --logger-file /dev/null --quiet --decrypt ${mntkey}${LUKS_KEY} | "
-							ply_cmd="gpg --logger-file /dev/null --quiet --passphrase-fd 0 --batch --not-tty --decrypt ${mntkey}${LUKS_KEY} | "
+							ply_cmd="gpg --logger-file /dev/null --quiet --passphrase-fd 0 --batch --no-tty --decrypt ${mntkey}${LUKS_KEY} | "
 						fi
 					else
 						cryptsetup_options="${cryptsetup_options} -d ${mntkey}${LUKS_KEY}"
