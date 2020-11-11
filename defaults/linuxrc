@@ -189,9 +189,7 @@ do
 			NEW_CONSOLE=${NEW_CONSOLE%%,*}
 		;;
 		splash)
-			PLYMOUTH_BIN="/usr/bin/plymouth"
-			PLYMOUTHD_BIN="/usr/sbin/plymouthd"
-			if [ -e ${PLYMOUTH_BIN} ] -a [ -e ${PLYMOUTHD_BIN} ]
+			if [ -x /usr/bin/plymouth -a -x /usr/sbin/plymouthd ]
 			then
 				PLYMOUTH=1
 			fi

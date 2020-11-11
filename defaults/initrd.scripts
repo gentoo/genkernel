@@ -1205,7 +1205,7 @@ crypt_filter() {
 		eval run ${1} >/dev/null 2>&1
 	elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
 	then
-		eval run ${PLYMOUTH_BIN} ask-for-password --prompt "LUKS password: " \
+		eval run plymouth ask-for-password --prompt "LUKS password: " \
 			--number-of-tries=3 --command="${2}"
 		res=$?
 		return ${res}
@@ -1547,7 +1547,7 @@ splashCmd() {
 			splash 'verbose'
 		elif [ ${PLYMOUTH} = '1' ]
 		then
-			plymouth_running && run "${PLYMOUTH_BIN}" --hide-splash
+			plymouth_running && run plymouth --hide-splash
 		fi
 		;;
 
@@ -1557,23 +1557,23 @@ splashCmd() {
 			splash 'set_msg' "${2}"
 		elif [ ${PLYMOUTH} = '1' ]
 		then
-			plymouth_running && run "${PLYMOUTH_BIN}" --update="${2}"
+			plymouth_running && run plymouth --update="${2}"
 		fi
 		;;
 
 		quiet)
-		plymouth_running && run "${PLYMOUTH_BIN}" --show-splash
+		plymouth_running && run plymouth --show-splash
 		;;
 
 		hasroot)
-		plymouth_running && run "${PLYMOUTH_BIN}" --newroot="${2}"
+		plymouth_running && run plymouth --newroot="${2}"
 		;;
 	esac
 }
 
 plymouth_running() {
 	[ -n "${PLYMOUTH_FAIL}" ] && return 1
-	run "${PLYMOUTH_BIN}" --ping 2>/dev/null && return 0
+	run plymouth --ping 2>/dev/null && return 0
 	return 1
 }
 
@@ -1587,10 +1587,10 @@ plymouthInit() {
 		--subsystem-match=drm --subsystem-match=tty >/dev/null 2>&1
 	udevsettle
 
-	run "${PLYMOUTHD_BIN}" --mode=boot --attach-to-session \
+	run plymouthd --mode=boot --attach-to-session \
 		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1; }
 
-	plymouth_running && run "${PLYMOUTH_BIN}" --show-splash
+	plymouth_running && run plymouth --show-splash
 	good_msg "Plymouth initialized"
 }
 
@@ -1995,13 +1995,13 @@ openLUKS() {
 					ply_cmd="${ply_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
 					local ply_cmd_file="$(mktemp -t "ply_cmd.XXXXXX")"
 					printf '#!/bin/sh\n%s\n' "${ply_cmd}" > "${ply_cmd_file}"
-					chmod 500 "${ply_cmd_file}"
+					run chmod 500 "${ply_cmd_file}"
 				fi
 				crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}" "${ply_cmd_file}"
 				crypt_filter_ret=$?
 				if [ "${PLYMOUTH}" = '1' ]
 				then
-					rm -f "${ply_cmd_file}"
+					run rm -f "${ply_cmd_file}"
 				fi
 
 				[ -e /dev/tty.org ] \
