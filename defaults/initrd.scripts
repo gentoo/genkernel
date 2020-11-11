@@ -1205,9 +1205,8 @@ crypt_filter() {
 		eval run ${1} >/dev/null 2>&1
 	elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
 	then
-		local ply_cmd=${2}
-		${PLYMOUTH_BIN} ask-for-password --prompt "LUKS password: " \
-			--number-of-tries=3 --command="$ply_cmd"
+		eval run ${PLYMOUTH_BIN} ask-for-password --prompt "LUKS password: " \
+			--number-of-tries=3 --command="${2}"
 		res=$?
 		return ${res}
 	else
@@ -1548,7 +1547,7 @@ splashCmd() {
 			splash 'verbose'
 		elif [ ${PLYMOUTH} = '1' ]
 		then
-			plymouth_running && "${PLYMOUTH_BIN}" --hide-splash
+			plymouth_running && run "${PLYMOUTH_BIN}" --hide-splash
 		fi
 		;;
 
@@ -1558,40 +1557,40 @@ splashCmd() {
 			splash 'set_msg' "${2}"
 		elif [ ${PLYMOUTH} = '1' ]
 		then
-			plymouth_running && "${PLYMOUTH_BIN}" --update="${2}"
+			plymouth_running && run "${PLYMOUTH_BIN}" --update="${2}"
 		fi
 		;;
 
 		quiet)
-		plymouth_running && "${PLYMOUTH_BIN}" --show-splash
+		plymouth_running && run "${PLYMOUTH_BIN}" --show-splash
 		;;
 
 		hasroot)
-		plymouth_running && "${PLYMOUTH_BIN}" --newroot="${2}"
+		plymouth_running && run "${PLYMOUTH_BIN}" --newroot="${2}"
 		;;
-    esac
+	esac
 }
 
 plymouth_running() {
 	[ -n "${PLYMOUTH_FAIL}" ] && return 1
-	"${PLYMOUTH_BIN}" --ping 2>/dev/null && return 0
+	run "${PLYMOUTH_BIN}" --ping 2>/dev/null && return 0
 	return 1
 }
 
 plymouthInit() {
 	good_msg "Starting Plymouth..."
-	mkdir -p /run/plymouth || return 1
+	run mkdir -p /run/plymouth || return 1
 
 	# Make sure that udev is done loading tty and drm
-	udevadm trigger --action=add --attr-match=class=0x030000 >/dev/null 2>&1
-	udevadm trigger --action=add --subsystem-match=graphics \
+	run udevadm trigger --action=add --attr-match=class=0x030000 >/dev/null 2>&1
+	run udevadm trigger --action=add --subsystem-match=graphics \
 		--subsystem-match=drm --subsystem-match=tty >/dev/null 2>&1
-	udevadm settle 2>&1
+	udevsettle
 
-	"${PLYMOUTHD_BIN}" --mode=boot --attach-to-session \
+	run "${PLYMOUTHD_BIN}" --mode=boot --attach-to-session \
 		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1; }
 
-	plymouth_running && "${PLYMOUTH_BIN}" --show-splash
+	plymouth_running && run "${PLYMOUTH_BIN}" --show-splash
 	good_msg "Plymouth initialized"
 }
 
