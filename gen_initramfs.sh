@@ -1314,14 +1314,16 @@ append_plymouth() {
 	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
 		|| gen_die "Failed to build plymouth cpio archive!"
 
+	# can probably get rid of this; depends if plymouth was built with static libs
 	# rm -f "${TDIR}"/lib*/{ld*,libc*,libz*} \
 		# || gen_die "Failed to clean up plymouth cpio archive!"
 
 	ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" "${TDIR}/usr/share/plymouth/themes/default.plymouth" \
 		|| gen_die "Failed to set the default plymouth theme!"
 
+	# this might be better located in append_drm (?)
 	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
-	cp /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
+	cp -aL /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
 
 	# clean up
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
