@@ -1320,6 +1320,9 @@ append_plymouth() {
 	ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" "${TDIR}/usr/share/plymouth/themes/default.plymouth" \
 		|| gen_die "Failed to set the default plymouth theme!"
 
+	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
+    cp /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
+
 	# clean up
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 	log_future_cpio_content
@@ -1385,7 +1388,7 @@ append_drm() {
 		do
 			if [ -e "/lib/firmware/${fw}" ]
 			then
-				print_info 1 "initramfs: >> Copying firmware ${fw}..."
+				print_info 1 "$(get_indent 2)>> Copying firmware ${fw}..."
 				cp -ax --parents "/lib/firmware/${fw}" "${TDIR}" \
 					|| gen_die "Failed to copy ${fw}!"
 			fi

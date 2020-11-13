@@ -1572,8 +1572,8 @@ splashCmd() {
 
 plymouth_running() {
 	[ -n "${PLYMOUTH_FAIL}" ] && return 1
-	run plymouth --ping 2>/dev/null && return 0
-	return 1
+	run plymouth --ping 2>/dev/null
+	return $?
 }
 
 plymouthInit() {
@@ -1587,7 +1587,7 @@ plymouthInit() {
 	udevsettle
 
 	run plymouthd --mode=boot --attach-to-session \
-		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1; }
+		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1 }
 
 	plymouth_running && run plymouth --show-splash
 	good_msg "Plymouth initialized"
