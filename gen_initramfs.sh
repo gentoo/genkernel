@@ -1296,6 +1296,10 @@ append_plymouth() {
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 
 	# set plymouth theme
+	if [ -n "${PLYMOUTH_THEME}" ]
+	then
+		plymouth-set-default-theme ${PLYMOUTH_THEME} || gen_die "Failed to set default plymouth theme!"
+	fi
 	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
 	then
 		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default plymouth theme!"
@@ -1310,8 +1314,11 @@ append_plymouth() {
 	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
 		|| gen_die "Failed to build plymouth cpio archive!"
 
-	rm -f "${TDIR}"/lib*/{ld*,libc*,libz*} \
-		|| gen_die "Failed to clean up plymouth cpio archive!"
+	# rm -f "${TDIR}"/lib*/{ld*,libc*,libz*} \
+		# || gen_die "Failed to clean up plymouth cpio archive!"
+
+	ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" "${TDIR}/usr/share/plymouth/themes/default.plymouth" \
+		|| gen_die "Failed to set the default plymouth theme!"
 
 	# clean up
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
@@ -1324,6 +1331,82 @@ append_plymouth() {
 	then
 		rm -rf "${TDIR}"
 	fi
+}
+
+append_drm() {
+	local PN=drm
+	local TDIR="${TEMP}/initramfs-${PN}-${KV}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	print_info 1 "$(get_indent 1)>> Appending drm drivers..."
+
+	# mkdir -p "${TDIR}/lib/modules/${KV}"
+
+	local drm_path="/lib/modules/${KV}/kernel/drivers/gpu/drm"
+	local modules
+	if [ -d "${drm_path}" ]
+	then
+		modules=$(strip_mod_paths $(find "${drm_path}" -name "*.ko"))
+	else
+		print_info 1 "Warning :: no drm modules in drivers/gpu/drm..."
+	fi
+
+	rm -f "${TEMP}/moddeps" || gen_die "Failed to clear old moddeps!"
+	gen_deps ${modules}
+	if [ -f "${TEMP}/moddeps" ]
+	then
+		modules=$(cat "${TEMP}/moddeps" | sort | uniq)
+	else
+		print_info 1 "Warning :: module dependencies not generated..."
+	fi
+
+	local mod i fws fw
+	for i in ${modules}
+	do
+		mod=$(find "/lib/modules/${KV}" -name "${i}.ko" 2>/dev/null| head -n 1)
+		if [ -z "${mod}" ]
+		then
+			print_info 1 "Warning :: ${i}.ko not found; skipping..."
+			continue
+		fi
+
+		print_info 1 "$(get_indent 2)>> Copying ${mod}..."
+		cp -ax --parents "${mod}" "${TDIR}" || gen_die "Failed to copy '${mod}'!"
+
+		# check that firmware files exist, then copy them (modinfo may list deprecated firmware)
+		fws=( $(get_firmware_files "${mod}") )
+		for fw in "${fws[@]}"
+		do
+			if [ -e "/lib/firmware/${fw}" ]
+			then
+				print_info 1 "initramfs: >> Copying firmware ${fw}..."
+				cp -ax --parents "/lib/firmware/${fw}" "${TDIR}" \
+					|| gen_die "Failed to copy ${fw}!"
+			fi
+		done
+	done
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
+get_firmware_files() {
+	local kmod="${1}"
+	modinfo --set-version="${KV}" -F firmware "${kmod}" || gen_die "Failed to get modinfo for ${kmod}!"
 }
 
 append_strace() {
@@ -2051,6 +2134,11 @@ create_initramfs() {
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"
 	append_data 'zfs' "${ZFS}"
+
+	if isTrue "${PLYMOUTH}"
+	then
+		append_data 'drm'
+	fi
 
 	if isTrue "${ZFS}"
 	then

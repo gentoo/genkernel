@@ -560,8 +560,7 @@ conf_rc_no_umounts() {
 	if nomount=$(grep -n '^[[:blank:]]*no_umounts=' ${conf})
 	then
 		local i n data cmd IFS
-		IFS='
-'
+		IFS=''
 		set -- ${nomount}
 		unset IFS
 
@@ -1205,7 +1204,7 @@ crypt_filter() {
 		eval run ${1} >/dev/null 2>&1
 	elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
 	then
-		run plymouth ask-for-password --prompt "LUKS password: " \
+		run plymouth ask-for-password --prompt "Enter LUKS passphrase" \
 			--number-of-tries=3 --command="${2}"
 		res=$?
 		return ${res}
@@ -1579,7 +1578,7 @@ plymouth_running() {
 
 plymouthInit() {
 	good_msg "Starting Plymouth..."
-	run mkdir -p /run/plymouth || return 1
+	run mkdir -p -m 0755 /run/plymouth || return 1
 
 	# Make sure that udev is done loading tty and drm
 	run udevadm trigger --action=add --attr-match=class=0x030000 >/dev/null 2>&1
