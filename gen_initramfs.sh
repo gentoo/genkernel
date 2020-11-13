@@ -1321,7 +1321,7 @@ append_plymouth() {
 		|| gen_die "Failed to set the default plymouth theme!"
 
 	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
-    cp /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
+	cp /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
 
 	# clean up
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
@@ -1357,7 +1357,7 @@ append_drm() {
 	then
 		modules=$(strip_mod_paths $(find "${drm_path}" -name "*.ko"))
 	else
-		print_info 1 "Warning :: no drm modules in drivers/gpu/drm..."
+		print_info 1 "$(get_indent 2)Warning :: no drm modules in drivers/gpu/drm..."
 	fi
 
 	rm -f "${TEMP}/moddeps" || gen_die "Failed to clear old moddeps!"
@@ -1366,7 +1366,7 @@ append_drm() {
 	then
 		modules=$(cat "${TEMP}/moddeps" | sort | uniq)
 	else
-		print_info 1 "Warning :: module dependencies not generated..."
+		print_info 1 "$(get_indent 2)Warning :: module dependencies not generated..."
 	fi
 
 	local mod i fws fw
@@ -1375,7 +1375,7 @@ append_drm() {
 		mod=$(find "/lib/modules/${KV}" -name "${i}.ko" 2>/dev/null| head -n 1)
 		if [ -z "${mod}" ]
 		then
-			print_info 1 "Warning :: ${i}.ko not found; skipping..."
+			print_info 1 "$(get_indent 2)Warning :: ${i}.ko not found; skipping..."
 			continue
 		fi
 
