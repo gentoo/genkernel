@@ -1531,30 +1531,30 @@ splash() {
 splashCmd() {
 	case "${1}" in
 		init)
-		if [ ${FBSPLASH} = '1' ]
+		if [ "${FBSPLASH}" = '1' ]
 		then
 			splash 'init'
-		elif [ ${PLYMOUTH} = '1' ]
+		elif [ "${PLYMOUTH}" = '1' ]
 		then
 			plymouthInit
 		fi
 		;;
 
 		verbose)
-		if [ ${FBSPLASH} = '1' ]
+		if [ "${FBSPLASH}" = '1' ]
 		then
 			splash 'verbose'
-		elif [ ${PLYMOUTH} = '1' ]
+		elif [ "${PLYMOUTH}" = '1' ]
 		then
 			plymouth_running && run plymouth --hide-splash
 		fi
 		;;
 
 		set_msg)
-		if [ ${FBSPLASH} = '1' ]
+		if [ "${FBSPLASH}" = '1' ]
 		then
 			splash 'set_msg' "${2}"
-		elif [ ${PLYMOUTH} = '1' ]
+		elif [ "${PLYMOUTH}" = '1' ]
 		then
 			plymouth_running && run plymouth --update="${2}"
 		fi
@@ -1587,7 +1587,7 @@ plymouthInit() {
 	udevsettle
 
 	run plymouthd --mode=boot --attach-to-session \
-		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1 }
+		--pid-file=/run/plymouth/pid || { PLYMOUTH_FAIL=1; return 1; }
 
 	plymouth_running && run plymouth --show-splash
 	good_msg "Plymouth initialized"
