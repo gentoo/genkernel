@@ -1323,6 +1323,7 @@ append_plymouth() {
 
 	# this might be better located in append_drm (?)
 	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
+	cp -aL /lib/udev/rules.d/70-uaccess.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '70-uaccess.rules'!"
 	cp -aL /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
 
 	# clean up
