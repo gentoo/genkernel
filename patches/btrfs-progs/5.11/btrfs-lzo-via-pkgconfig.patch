@@ -1,8 +1,6 @@
-diff --git a/configure.ac b/configure.ac
-index cf792eb..3ca0806 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -256,17 +256,8 @@ if ${PKG_CONFIG} udev --atleast-version 190; then
+@@ -304,16 +304,8 @@ if ${PKG_CONFIG} udev --atleast-version 190; then
  fi
  AC_SUBST(UDEVDIR)
  
@@ -16,9 +14,9 @@ index cf792eb..3ca0806 100644
 -AC_SUBST([LZO2_LIBS])
 -AC_SUBST([LZO2_LIBS_STATIC])
 -AC_SUBST([LZO2_CFLAGS])
--
 +PKG_CHECK_MODULES(LZO2, [lzo2])
 +PKG_STATIC(LZO2_LIBS_STATIC, [lzo2])
  
- dnl library stuff
- AC_SUBST([LIBBTRFS_MAJOR])
+ dnl call PKG_INSTALLDIR from pkg.m4 to set pkgconfigdir
+ m4_ifdef([PKG_INSTALLDIR], [PKG_INSTALLDIR], [AC_MSG_ERROR([please install pkgconf])])
+ 

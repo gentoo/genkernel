@@ -1,6 +1,6 @@
 --- a/Makefile.in
 +++ b/Makefile.in
-@@ -150,9 +150,9 @@ endif
+@@ -160,9 +160,9 @@ endif
  
  TOP_DIR:=@top_srcdir@
  TOP_BUILDDIR:=@top_builddir@
@@ -12,16 +12,7 @@
  
  ifeq ("@DEVTOOLS@", "yes")
  CXXFLAGS+=-DDEV_TOOLS
-@@ -230,7 +230,7 @@ endif
- lib/libpdata.a: $(OBJECTS) $(EMITTERS)
- 	@echo "    [AR]  $<"
- 	@mkdir -p $(dir $@)
--	$(V)ar -rv $@ $(OBJECTS) $(EMITTERS) > /dev/null 2>&1
-+	$(V)$(AR) -rv $@ $(OBJECTS) $(EMITTERS) > /dev/null 2>&1
- 
- bin/pdata_tools: $(OBJECTS) $(EMITTERS)
- 	@echo "    [LD]  $@"
-@@ -346,7 +346,7 @@ LIBFT_OBJECTS=$(subst .c,.o,$(LIBFT_SOURCE))
+@@ -363,7 +363,7 @@ LIBFT_OBJECTS=$(subst .c,.o,$(LIBFT_SOURCE))
  
  lib/libft.so: $(LIBFT_OBJECTS)
  	@echo "    [LD]" $@
@@ -41,17 +32,6 @@
  AC_PROG_SED
  AC_PROG_AWK
  AC_PROG_LN_S
---- a/contrib/Makefile.in
-+++ b/contrib/Makefile.in
-@@ -16,7 +16,7 @@ contrib/%.o: contrib/%.cc
- 
- contrib/%.a: contrib/%.o
- 	$(V)echo "    [AR] $@"
--	$(V)ar rcs $@ $^
-+	$(V)$(AR) rcs $@ $^
- 
- contrib/%.so: contrib/%.a
- 	$(V)echo "    [LD] $@"
 --- a/functional-tests/bcache/Makefile
 +++ b/functional-tests/bcache/Makefile
 @@ -1,8 +1,8 @@
@@ -102,31 +82,4 @@
  
  GMOCK_DEPS=\
  	$(wildcard $(GMOCK_DIR)/googlemock/include/*.h) \
-@@ -36,11 +36,11 @@ GMOCK_DEPS=\
- lib/libgmock.a: $(GMOCK_DEPS)
- 	@echo "    [CXX] gtest"
- 	@mkdir -p lib
--	$(V)g++ $(GMOCK_INCLUDES) -I$(GMOCK_DIR)/googletest -c $(GMOCK_DIR)/googletest/src/gtest-all.cc
-+	$(V)$(CXX) $(GMOCK_INCLUDES) -I$(GMOCK_DIR)/googletest -c $(GMOCK_DIR)/googletest/src/gtest-all.cc
- 	@echo "    [CXX] gmock"
--	$(V)g++ $(GMOCK_INCLUDES) -I$(GMOCK_DIR)/googlemock -c $(GMOCK_DIR)/googlemock/src/gmock-all.cc
-+	$(V)$(CXX) $(GMOCK_INCLUDES) -I$(GMOCK_DIR)/googlemock -c $(GMOCK_DIR)/googlemock/src/gmock-all.cc
- 	@echo "    [AR]  $<"
--	$(V)ar -rv lib/libgmock.a gtest-all.o gmock-all.o > /dev/null 2>&1
-+	$(V)$(AR) -rv lib/libgmock.a gtest-all.o gmock-all.o > /dev/null 2>&1
- 
- TEST_SOURCE=\
- 	unit-tests/gmock_main.cc \
-@@ -86,10 +86,10 @@ TEST_OBJECTS=$(subst .cc,.gmo,$(TEST_SOURCE))
- 	sed 's,\([^ :]*\)\.o[ :]*,\1.o \1.gmo $* : Makefile ,g' < $*.$$$$ > $*.d; \
- 	$(RM) $*.$$$$
- 
--unit-tests/unit_tests: $(TEST_OBJECTS) lib/libgmock.a lib/libpdata.a
-+unit-tests/unit_tests: $(TEST_OBJECTS) lib/libpdata.a
- 	@echo "    [LD]  $<"
- 	@mkdir -p $(dir $@)
--	$(V)g++ $(CXXFLAGS) $(LDFLAGS) -o $@ $(TEST_OBJECTS) $(LIBS) $(GMOCK_LIBS) $(LIBEXPAT)
-+	$(V)$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(TEST_OBJECTS) $(LIBS) $(GMOCK_LIBS) $(LIBEXPAT)
- 
- .PHONY: unit-test
  

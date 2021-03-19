@@ -1,0 +1,127 @@
+--- a/configure
++++ b/configure
+@@ -13779,83 +13779,6 @@ fi
+     librt=""
+   fi
+ 
+-
+-
+- for ac_header in ini.h
+-do :
+-  ac_fn_c_check_header_mongrel "$LINENO" "ini.h" "ac_cv_header_ini_h" "$ac_includes_default"
+-if test "x$ac_cv_header_ini_h" = xyes; then :
+-  cat >>confdefs.h <<_ACEOF
+-#define HAVE_INI_H 1
+-_ACEOF
+-
+-fi
+-
+-done
+-
+-    if test $ac_cv_header_ini_h = no; then
+-	echo
+-	echo 'FATAL ERROR: could not find a valid ini.h header.'
+-	echo 'Install the libinih development package.'
+-	exit 1
+-    fi
+-
+- { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ini_parse in -linih" >&5
+-$as_echo_n "checking for ini_parse in -linih... " >&6; }
+-if ${ac_cv_lib_inih_ini_parse+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-  ac_check_lib_save_LIBS=$LIBS
+-LIBS="-linih  $LIBS"
+-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-
+-/* Override any GCC internal prototype to avoid an error.
+-   Use char because int might match the return type of a GCC
+-   builtin and then its argument prototype would still apply.  */
+-#ifdef __cplusplus
+-extern "C"
+-#endif
+-char ini_parse ();
+-int
+-main ()
+-{
+-return ini_parse ();
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_c_try_link "$LINENO"; then :
+-  ac_cv_lib_inih_ini_parse=yes
+-else
+-  ac_cv_lib_inih_ini_parse=no
+-fi
+-rm -f core conftest.err conftest.$ac_objext \
+-    conftest$ac_exeext conftest.$ac_ext
+-LIBS=$ac_check_lib_save_LIBS
+-fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_inih_ini_parse" >&5
+-$as_echo "$ac_cv_lib_inih_ini_parse" >&6; }
+-if test "x$ac_cv_lib_inih_ini_parse" = xyes; then :
+-  cat >>confdefs.h <<_ACEOF
+-#define HAVE_LIBINIH 1
+-_ACEOF
+-
+-  LIBS="-linih $LIBS"
+-
+-else
+-
+-	echo
+-	echo 'FATAL ERROR: could not find a valid inih library.'
+-	echo 'Install the libinih library package.'
+-	exit 1
+-
+-fi
+-
+-    libinih=-linih
+-
+-
+-
+  for ac_header in uuid.h sys/uuid.h uuid/uuid.h
+ do :
+   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+--- a/include/builddefs.in
++++ b/include/builddefs.in
+@@ -27,7 +27,6 @@ LIBTERMCAP = @libtermcap@
+ LIBEDITLINE = @libeditline@
+ LIBBLKID = @libblkid@
+ LIBDEVMAPPER = @libdevmapper@
+-LIBINIH = @libinih@
+ LIBXFS = $(TOPDIR)/libxfs/libxfs.la
+ LIBFROG = $(TOPDIR)/libfrog/libfrog.la
+ LIBXCMD = $(TOPDIR)/libxcmd/libxcmd.la
+--- a/mkfs/xfs_mkfs.c
++++ b/mkfs/xfs_mkfs.c
+@@ -11,7 +11,6 @@
+ #include "libfrog/fsgeom.h"
+ #include "libfrog/topology.h"
+ #include "libfrog/convert.h"
+-#include <ini.h>
+ 
+ #define TERABYTES(count, blog)	((uint64_t)(count) << (40 - (blog)))
+ #define GIGABYTES(count, blog)	((uint64_t)(count) << (30 - (blog)))
+@@ -3769,7 +3768,7 @@ cfgfile_parse(
+ 	if (!cli->cfgfile)
+ 		return;
+ 
+-	error = ini_parse(cli->cfgfile, cfgfile_parse_ini, cli);
++	error = -3;
+ 	if (error) {
+ 		if (error > 0) {
+ 			fprintf(stderr,
+@@ -3783,6 +3782,10 @@ cfgfile_parse(
+ 			fprintf(stderr,
+ 		_("Memory allocation failure parsing %s. Aborting.\n"),
+ 				cli->cfgfile);
++		} else if (error == -3) {
++			fprintf(stderr,
++		_("Unable to open config file %s. xfsprogs was built without cfg file support.\n"),
++				cli->cfgfile);
+ 		} else {
+ 			fprintf(stderr,
+ 		_("Unknown error %d opening config file %s. Aborting.\n"),
+ 

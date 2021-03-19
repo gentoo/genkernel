@@ -632,6 +632,10 @@ gkautomake() {
 # Wrapper for autoreconf.
 # Will die when command will exit with nonzero exit status.
 gkautoreconf() {
+	# >autoconf-2.69 will call gtkdocize when used in macros
+	# when called with --install parameter.
+	local -x GTKDOCIZE=true
+
 	gkexec "autoreconf --force --install ${*}"
 }
 

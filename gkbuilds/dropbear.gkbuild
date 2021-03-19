@@ -13,6 +13,7 @@ src_prepare() {
 
 src_configure() {
 	local myconf=(
+		--enable-bundled-libtom
 		--enable-static
 		--disable-pam
 		--disable-syslog

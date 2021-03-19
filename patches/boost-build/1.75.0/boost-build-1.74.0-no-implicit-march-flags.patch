@@ -1,14 +1,6 @@
-Prevent bjam from injecting what it thinks are great -march/-mcpu flags
-in order to optimize code for you. This breaks on 32-bit builds, because
--march=i686 will not work on an i486 CHOST.
-
-See also:
-https://bugs.gentoo.org/624616
-
---- a/tools/gcc.jam
 --- a/tools/gcc.jam
 +++ b/tools/gcc.jam
-@@ -1202,129 +1202,8 @@
+@@ -1224,135 +1224,9 @@
  # x86 and compatible
  # The 'native' option appeared in gcc 4.2 so we cannot safely use it as default.
  # Use i686 instead for 32-bit.
@@ -51,7 +43,11 @@ https://bugs.gentoo.org/624616
 -cpu-flags gcc OPTIONS : x86 : skylake : -march=skylake ;
 -cpu-flags gcc OPTIONS : x86 : skylake-avx512 : -march=skylake-avx512 ;
 -cpu-flags gcc OPTIONS : x86 : cannonlake : -march=skylake-avx512 -mavx512vbmi -mavx512ifma -msha ;
--cpu-flags gcc OPTIONS : x86 : icelake : -march=icelake ;
+-cpu-flags gcc OPTIONS : x86 : icelake-client : -march=icelake-client ;
+-cpu-flags gcc OPTIONS : x86 : icelake-server : -march=icelake-server ;
+-cpu-flags gcc OPTIONS : x86 : cascadelake : -march=skylake-avx512 -mavx512vnni ;
+-cpu-flags gcc OPTIONS : x86 : cooperlake : -march=cooperlake ;
+-cpu-flags gcc OPTIONS : x86 : tigerlake : -march=tigerlake ;
 -cpu-flags gcc OPTIONS : x86 : k6 : -march=k6 ;
 -cpu-flags gcc OPTIONS : x86 : k6-2 : -march=k6-2 ;
 -cpu-flags gcc OPTIONS : x86 : k6-3 : -march=k6-3 ;
@@ -77,13 +73,15 @@ https://bugs.gentoo.org/624616
 -cpu-flags gcc OPTIONS : x86 : btver1 : -march=btver1 ;
 -cpu-flags gcc OPTIONS : x86 : btver2 : -march=btver2 ;
 -cpu-flags gcc OPTIONS : x86 : znver1 : -march=znver1 ;
+-cpu-flags gcc OPTIONS : x86 : znver2 : -march=znver2 ;
 -cpu-flags gcc OPTIONS : x86 : winchip-c6 : -march=winchip-c6 ;
 -cpu-flags gcc OPTIONS : x86 : winchip2 : -march=winchip2 ;
 -cpu-flags gcc OPTIONS : x86 : c3 : -march=c3 ;
 -cpu-flags gcc OPTIONS : x86 : c3-2 : -march=c3-2 ;
+-cpu-flags gcc OPTIONS : x86 : c7 : -march=c7 ;
  ##
 -cpu-flags gcc OPTIONS : x86 : atom : -march=atom ;
--# Sparc
+ # Sparc
 -cpu-flags gcc OPTIONS : sparc : v7 : -mcpu=v7 : default ;
 -cpu-flags gcc OPTIONS : sparc : cypress : -mcpu=cypress ;
 -cpu-flags gcc OPTIONS : sparc : v8 : -mcpu=v8 ;
@@ -140,7 +138,7 @@ https://bugs.gentoo.org/624616
  toolset.flags gcc AROPTIONS <address-model>64/<target-os>aix : "-X64" ;
 --- a/tools/gcc.py
 +++ b/tools/gcc.py
-@@ -745,126 +745,14 @@
+@@ -745,138 +745,14 @@
  # x86 and compatible
  flags('gcc', 'OPTIONS', ['<architecture>x86/<address-model>32'], ['-m32'])
  flags('gcc', 'OPTIONS', ['<architecture>x86/<address-model>64'], ['-m64'])
@@ -178,6 +176,15 @@ https://bugs.gentoo.org/624616
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'core-avx-i', ['-march=core-avx-i'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'ivy-bridge', ['-march=core-avx-i'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'haswell', ['-march=core-avx-i', '-mavx2', '-mfma', '-mbmi', '-mbmi2', '-mlzcnt'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'broadwell', ['-march=broadwell'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'skylake', ['-march=skylake'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'skylake-avx512', ['-march=skylake-avx512'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'cannonlake', ['-march=skylake-avx512', '-mavx512vbmi', '-mavx512ifma', '-msha'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'icelake-client', ['-march=icelake-client'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'icelake-server', ['-march=icelake-server'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'cascadelake', ['-march=skylake-avx512', '-mavx512vnni'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'cooperlake', ['-march=cooperlake'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'tigerlake', ['-march=tigerlake'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'k6', ['-march=k6'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'k6-2', ['-march=k6-2'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'k6-3', ['-march=k6-3'])
@@ -201,10 +208,13 @@ https://bugs.gentoo.org/624616
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'bdver3', ['-march=bdver3'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'btver1', ['-march=btver1'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'btver2', ['-march=btver2'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'znver1', ['-march=znver1'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'znver2', ['-march=znver2'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'winchip-c6', ['-march=winchip-c6'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'winchip2', ['-march=winchip2'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'c3', ['-march=c3'])
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'c3-2', ['-march=c3-2'])
+-cpu_flags('gcc', 'OPTIONS', 'x86', 'c7', ['-march=c7'])
  ##
 -cpu_flags('gcc', 'OPTIONS', 'x86', 'atom', ['-march=atom'])
  # Sparc

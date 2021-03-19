@@ -1,48 +1,5 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
-
-src_prepare() {
-	default
-
-	if [[ ! -f "${S}/src/syscfg/lock-obj-pub.${CHOST}.h" ]]
-	then
-		print_warning 3 "CHOST '${CHOST}' not known by ${P} -- workaround for bug 584052 needed ..."
-		local CHOST_KNOWN=
-		local -a CHOST_ARRAY=( ${CHOST//-/ } )
-
-		i=0
-		while [[ ${i} -lt ${#CHOST_ARRAY[@]} ]]
-		do
-			if [[ ${i} -eq 0 ]]
-			then
-				case "${CHOST_ARRAY[${i}]}" in
-					arm*)
-						CHOST_ARRAY[${i}]=arm
-						;;
-				esac
-			elif [[ ${i} -eq 1 && "${CHOST_ARRAY[${i}]}" != "unknown" ]]
-			then
-				CHOST_ARRAY[${i}]=unknown
-			fi
-
-			if [[ ${CHOST_KNOWN} != "*${CHOST_ARRAY[${i}]}*" ]]
-			then
-				CHOST_KNOWN+="${CHOST_ARRAY[${i}]}-"
-			fi
-
-			i=$((i + 1))
-		done
-
-		CHOST_KNOWN=${CHOST_KNOWN%-}
-		if [[ ! -f "${S}/src/syscfg/lock-obj-pub.${CHOST_KNOWN}.h" ]]
-		then
-			print_warning 3 "We tried our best but even '${CHOST_KNOWN}' looks unknown -- good luck!"
-		else
-			export CHOST=${CHOST_KNOWN}
-			print_warning 3 "CHOST set to '${CHOST_KNOWN}'!"
-		fi
-	fi
-}
 
 src_configure() {
 	local myconf=(
@@ -59,24 +16,8 @@ src_install() {
 
 	rm -rf \
 		"${D}"/usr/bin/gpg-error \
+		"${D}"/usr/bin/gpg-error-config \
 		"${D}"/usr/bin/gpgrt-config \
 		"${D}"/usr/bin/yat2m \
 		"${D}"/usr/share
-
-	mv "${D}"/usr/bin/gpg-error-config "${D}"/usr/bin/gpg-error-config.ori \
-		|| die "Failed to rename '${D}/usr/bin/gpg-error-config' to '${D}/usr/bin/gpg-error-config.ori'!"
-
-	cat >"${D}"/usr/bin/gpg-error-config <<-EOF
-	#!/bin/sh
-
-	SYSROOT=\$(dirname "\$(dirname "\$(dirname "\$(readlink -fm "\$0")")")")
-
-	exec "\${SYSROOT}"/usr/bin/gpg-error-config.ori "\$@" | sed -e 's#/#'\${SYSROOT}'/#'
-	EOF
-
-	chmod +x "${D}"/usr/bin/gpg-error-config \
-		|| die "Failed to chmod of '${D}/bin/gpg-error-config'!"
-
-	ln -s gpg-error-config "${D}"/usr/bin/gpgrt-config \
-		|| die "Failed to symlink '${D}/bin/gpgrt-config' to '${D}/bin/gpg-error-config'!"
 }

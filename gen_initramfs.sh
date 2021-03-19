@@ -37,7 +37,7 @@ copy_binaries() {
 		[[ -e "${binary}" ]] \
 			|| gen_die "Binary ${binary} could not be found"
 
-		if LC_ALL=C "${LDDTREE_COMMAND}" "${binary}" 2>&1 | grep -F -q 'not found'
+		if "${LDDTREE_COMMAND}" "${binary}" 2>&1 | grep -F -q 'not found'
 		then
 			gen_die "Binary ${binary} is linked to missing libraries and may need to be re-built"
 		fi
@@ -629,7 +629,8 @@ append_eudev() {
 		local gen_hwdb_cmd=( "${TDIR}/usr/bin/udevadm" )
 		gen_hwdb_cmd+=( hwdb --update --root "${TDIR}" )
 		print_info 3 "COMMAND: ${gen_hwdb_cmd[*]}" 1 0 1
-		eval "${gen_hwdb_cmd[@]}" || gen_die "Failed to pre-generate initramfs' /etc/udev/hwdb.bin!"
+		eval "${gen_hwdb_cmd[@]}" 2>&1 | tee -a "${LOGFILE}" \
+			|| gen_die "Failed to pre-generate initramfs' /etc/udev/hwdb.bin!"
 
 		# Now that we have a pre-generated hwdb in initramfs
 		# we can delete source files
@@ -1207,7 +1208,7 @@ append_linker() {
 		mkdir -p "${TDIR}"/sbin || gen_die "Failed to create '${TDIR}/sbin'!"
 
 		local libdir=$(get_chost_libdir)
-		copy_system_binaries "${TDIR}/sbin" "${libdir}/../../sbin/ldconfig"
+		copy_system_binaries "${TDIR}/sbin" "${libdir%/usr\/*}/sbin/ldconfig"
 	else
 		# Only copy /etc/ld.so.conf.d -- /etc/ld.so.conf was already
 		# added to CPIO via append_base_layout() and because we only
@@ -1783,10 +1784,10 @@ append_firmware() {
 
 	mkdir -p "${TDIR}"/lib/firmware || gen_die "Failed to create '${TDIR}/lib/firmware'!"
 
-	if [ -n "${FIRMWARE_FILES}" ]
+	if [ ${#FIRMWARE_FILES[@]} -gt 0 ]
 	then
 		pushd "${FIRMWARE_DIR}" &>/dev/null || gen_die "Failed to chdir to '${FIRMWARE_DIR}'!"
-		cp -rL --parents --target-directory="${TDIR}/lib/firmware" ${FIRMWARE_FILES} 2>/dev/null \
+		cp -rL --parents --target-directory="${TDIR}/lib/firmware" "${FIRMWARE_FILES[@]}" 2>/dev/null \
 			|| gen_die "Failed to copy firmware files (${FIRMWARE_FILES}) to '${TDIR}/lib/firmware'!"
 		popd &>/dev/null || gen_die "Failed to chdir!"
 	else
@@ -1959,13 +1960,7 @@ append_modprobed() {
 	fi
 }
 
-# check for static linked file with objdump
-is_static() {
-	LANG="C" LC_ALL="C" objdump -T $1 2>&1 | grep "not a dynamic object" > /dev/null
-	return $?
-}
-
-append_auxilary() {
+append_auxiliary() {
 	local TDIR="${TEMP}/initramfs-aux-temp"
 	if [ -d "${TDIR}" ]
 	then
@@ -2088,7 +2083,7 @@ append_auxilary() {
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 	log_future_cpio_content
 	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append auxilary to cpio!"
+		|| gen_die "Failed to append auxiliary to cpio!"
 
 	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
 	if isTrue "${CLEANUP}"
@@ -2119,7 +2114,7 @@ create_initramfs() {
 	append_data 'util-linux'
 	append_data 'eudev'
 	append_data 'devicemanager'
-	append_data 'auxilary' "${BUSYBOX}"
+	append_data 'auxiliary' "${BUSYBOX}"
 	append_data 'busybox' "${BUSYBOX}"
 	append_data 'b2sum' "${B2SUM}"
 	append_data 'btrfs' "${BTRFS}"

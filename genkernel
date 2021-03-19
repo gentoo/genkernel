@@ -2,7 +2,13 @@
 # $Id$
 
 PATH="${PATH}:/sbin:/usr/sbin"
-GK_V='4.1.2'
+GK_V='4.2.0'
+
+# Normalize locales
+export LC_ALL=C
+export LANG=C
+unset LC_MESSAGES
+unset LC_CTYPE
 
 GK_TIME_START=$(date +%s)
 
@@ -40,6 +46,7 @@ then
 	GK_SETTINGS+=( EXTRAVERSION )
 	GK_SETTINGS+=( INSTALL_MOD_PATH )
 	GK_SETTINGS+=( MOD_INSTALL )
+	GK_SETTINGS+=( GREP_OPTIONS )
 
 	for GK_SETTING in "${GK_SETTINGS[@]}"
 	do
@@ -471,8 +478,10 @@ fi
 
 if isTrue "${BUILD_RAMDISK}"
 then
+	kconfig_file_used="${KERNEL_OUTPUTDIR}/.config"
 	if ! isTrue "${BUILD_KERNEL}"
 	then
+		kconfig_file_used="${KERNEL_CONFIG}"
 		INITRAMFS_FILE="${TMPDIR}/${GK_FILENAME_TEMP_INITRAMFS}"
 		isTrue "${CMD_INSTALL}" && INITRAMFS_FILE="${BOOTDIR}/${GK_FILENAME_INITRAMFS}"
 
@@ -517,14 +526,26 @@ then
 		print_warning 1 '"man genkernel" explains "dozfs" in detail.'
 	fi
 
-	CONFGREP_CMD=$(get_grep_cmd_for_file "${KERNEL_CONFIG}")
-	if [ $("${CONFGREP_CMD}" 'CONFIG_EXT[0-9]_FS=' "${KERNEL_CONFIG}" | wc -l) -ge 2 ]
+	CONFGREP_CMD=$(get_grep_cmd_for_file "${kconfig_file_used}")
+	if [ $("${CONFGREP_CMD}" 'CONFIG_EXT[0-9]_FS=' "${kconfig_file_used}" | wc -l) -ge 2 ]
 	then
 		print_warning 1 ''
 		print_warning 1 'With support for several ext* filesystems available, it may be needed to'
 		print_warning 1 'add "rootfstype=ext3" or "rootfstype=ext4" to the list of boot parameters.'
 	fi
 	unset CONFGREP_CMD
+
+	cfg_CONFIG_CMDLINE_OVERRIDE=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_CMDLINE_OVERRIDE)
+	if [ "${cfg_CONFIG_CMDLINE_OVERRIDE}" = "y" ]
+	then
+		cfg_CONFIG_CMDLINE=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_CMDLINE)
+		print_warning 1 ''
+		print_warning 1 "${BOLD}Note:${NORMAL}"
+		print_warning 1 'You have set CONFIG_CMDLINE_OVERRIDE=y.'
+		print_warning 1 "You will be unable to alter set kernel parameters (${cfg_CONFIG_CMDLINE}) at runtime!"
+		unset cfg_CONFIG_CMDLINE
+	fi
+	unset cfg_CONFIG_CMDLINE_OVERRIDE kconfig_file_used
 fi
 
 isTrue "${CMD_INSTALL}" && restore_boot_mount_state

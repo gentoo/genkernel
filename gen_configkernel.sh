@@ -334,8 +334,17 @@ config_kernel() {
 
 	if [ -n "${add_config}" ]
 	then
+		local kconfig_md5sum_old="$(md5sum < "${KERNEL_OUTPUTDIR}/.config")"
+
 		print_info 1 "$(get_indent 1)>> Invoking ${add_config} ..."
 		compile_generic ${add_config} kernelruntask
+
+		local kconfig_md5sum_new="$(md5sum < "${KERNEL_OUTPUTDIR}/.config")"
+		if [[ "${kconfig_md5sum_old}" == "${kconfig_md5sum_new}" ]]
+		then
+			print_warning 1 "$(get_indent 1)>> Kernel config was not modified!"
+		fi
+		unset kconfig_md5sum_old kconfig_md5sum_new
 	fi
 
 	local -a required_kernel_options
@@ -978,7 +987,7 @@ config_kernel() {
 
 			print_info 2 "$(get_indent 1)>> Ensure that required kernel options for early microcode loading support are set ..."
 			kconfigs_microcode+=( 'CONFIG_MICROCODE' )
-			kconfigs_microcode+=( 'CONFIG_MICROCODE_OLD_INTERFACE' )
+			[ ${KV_NUMERIC} -le 4003 ] && kconfigs_microcode+=( 'CONFIG_MICROCODE_OLD_INTERFACE' )
 			[ ${KV_NUMERIC} -le 4003 ] && kconfigs_microcode+=( 'CONFIG_MICROCODE_EARLY' )
 
 			# Intel

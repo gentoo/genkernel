@@ -12,3 +12,4 @@ Fixes
  dnl AC_USE_SYSTEM_EXTENSIONS must be called before any macros that run
  dnl the compiler (like AC_PROG_LIBTOOL) to avoid autoconf errors.
  AC_USE_SYSTEM_EXTENSIONS
+ 

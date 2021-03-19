@@ -1246,10 +1246,14 @@ determine_real_args() {
 
 	if isTrue "${FIRMWARE}"
 	then
-		for ff in ${FIRMWARE_FILES}; do
-			[[ ${ff} = /* ]] && gen_die "FIRMWARE_FILES should list paths relative to FIRMWARE_DIR, not absolute."
+		IFS=',' read -r -a FIRMWARE_FILES <<< "${FIRMWARE_FILES}"
+		pushd "${FIRMWARE_DIR}" &>/dev/null || gen_die "Failed to chdir to '${FIRMWARE_DIR}'!"
+		local ff
+		for ff in "${FIRMWARE_FILES[@]}"
+		do
+			[[ ${ff} = /* ]] && gen_die "--firmware-files contains value '${ff}' which is not a relative path from '${FIRMWARE_DIR}'!"
+			[[ ! -e "${ff}" ]] && gen_die "--firmware-files contains value '${ff}' which was not found in '${FIRMWARE_DIR}'!"
 		done
-
-		[[ "${FIRMWARE_FILES}" = *,* ]] && gen_die "FIRMWARE_FILES should be a space-separated list."
+		popd &>/dev/null || gen_die "Failed to chdir!"
 	fi
 }

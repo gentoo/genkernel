@@ -50,7 +50,7 @@ modules_dep_list() {
 	KEXT=$(modules_kext)
 	if [ -f "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}/modules.dep" ]
 	then
-		cat "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}/modules.dep" | grep ${1}${KEXT}\: | cut -d\:  -f2
+		grep -F -- "/${1}${KEXT}:" "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}/modules.dep" | cut -d\:  -f2
 	fi
 }
 

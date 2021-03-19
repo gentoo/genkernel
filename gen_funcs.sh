@@ -1853,7 +1853,7 @@ check_disk_space_requirements() {
 			gen_die "--check-free-disk-space-bootdir value '${CHECK_FREE_DISK_SPACE_BOOTDIR}' is not a valid number!"
 		fi
 
-		available_free_disk_space=$(unset POSIXLY_CORRECT && LC_ALL="C" df -BM "${BOOTDIR}" | awk '$3 ~ /[0-9]+/ { print $4 }')
+		available_free_disk_space=$(unset POSIXLY_CORRECT && df -BM "${BOOTDIR}" | awk '$3 ~ /[0-9]+/ { print $4 }')
 		if [ -n "${available_free_disk_space}" ]
 		then
 			print_info 2 '' 1 0
@@ -1890,7 +1890,7 @@ check_disk_space_requirements() {
 			gen_die "--check-free-disk-space-kerneloutputdir value '${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR}' is not a valid number!"
 		fi
 
-		available_free_disk_space=$(unset POSIXLY_CORRECT && LC_ALL="C" df -BM "${KERNEL_OUTPUTDIR}" | awk '$3 ~ /[0-9]+/ { print $4 }')
+		available_free_disk_space=$(unset POSIXLY_CORRECT && df -BM "${KERNEL_OUTPUTDIR}" | awk '$3 ~ /[0-9]+/ { print $4 }')
 		if [ -n "${available_free_disk_space}" ]
 		then
 			print_info 2 '' 1 0

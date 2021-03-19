@@ -46,12 +46,18 @@ main() {
 	local LUKS_NAME="${NAME}"
 	eval local LUKS_DEVICE='"${CRYPT_'${TYPE}'}"'
 	eval local LUKS_KEY='"${CRYPT_'${TYPE}'_KEYFILE}"'
-	eval local LUKS_TRIM='"${CRYPT_'${TYPE}'_TRIM}"'
+	eval local cryptsetup_options='"${CRYPT_'${TYPE}'_OPTIONS}"'
+	cryptsetup_options="$(trim "${cryptsetup_options}")"
 	eval local OPENED_LOCKFILE='"${CRYPT_'${TYPE}'_OPENED_LOCKFILE}"'
+
+	if [ -z "${LUKS_DEVICE}" ]
+	then
+		bad_msg "'crypt_${NAME}' kernel command-line argument is not set!"
+		exit 1
+	fi
 
 	while true
 	do
-		local cryptsetup_options=""
 		local gpg_cmd crypt_filter_ret
 
 		if [ -e "${OPENED_LOCKFILE}" ]
@@ -62,7 +68,7 @@ main() {
 			LUKS_DEVICE=$(find_real_device "${LUKS_DEVICE}")
 			if [ -z "${LUKS_DEVICE}" ]
 			then
-				bad_msg "Looks like CRYPT_${TYPE} kernel cmdline argument is not set." "${CRYPT_SILENT}"
+				bad_msg "Failed to find LUKS device. If crypt_${NAME} kernel command-line argument is correct you are probably missing kernel support for your storage!" ${CRYPT_SILENT}
 				exit 1
 			fi
 
@@ -74,10 +80,9 @@ main() {
 				# able to investigate the problem on its own.
 				exit 1
 			else
-				if [ "x${LUKS_TRIM}" = "xyes" ]
+				if [ -n "${cryptsetup_options}" ]
 				then
-					good_msg "Enabling TRIM support for ${LUKS_NAME} ..." "${CRYPT_SILENT}"
-					cryptsetup_options="${cryptsetup_options} --allow-discards"
+					good_msg "Using the following cryptsetup options for ${LUKS_NAME}: ${cryptsetup_options}" ${CRYPT_SILENT}
 				fi
 
 				# Handle keys

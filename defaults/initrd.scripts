@@ -99,16 +99,16 @@ modules_scan() {
 		then
 			if [ "${smart_loading}" = "yes" ]
 			then
-				if [ ! -f "${GK_ROOTFS_DETECTED_STATEFILE}" ]
+				if [ ! -f "${GK_ROOT_DEV_DETECTED_STATEFILE}" ]
 				then
 					_root_dev=$(findfs "${REAL_ROOT}" 2>/dev/null)
 					if [ $? -eq 0 ] && [ -n "${_root_dev}" ] && [ -b "${_root_dev}" ]
 					then
-						echo "${_root_dev}" > "${GK_ROOTFS_DETECTED_STATEFILE}"
+						echo "${_root_dev}" > "${GK_ROOT_DEV_DETECTED_STATEFILE}"
 					fi
 				fi
 
-				if [ -f "${GK_ROOTFS_DETECTED_STATEFILE}" ]
+				if [ -f "${GK_ROOT_DEV_DETECTED_STATEFILE}" ]
 				then
 					log_msg "${root_dev_found}"
 					printf "%b" "${root_dev_found}"
@@ -314,6 +314,7 @@ bootstrapFS() {
 	[ ! -e "${NEW_ROOT}/dev/null" ]    && run mknod -m 666 "${NEW_ROOT}"/dev/null c 1 3
 	[ ! -e "${NEW_ROOT}/dev/zero" ]    && run mknod -m 666 "${NEW_ROOT}"/dev/zero c 1 5
 	[ ! -e "${NEW_ROOT}/dev/console" ] && run mknod -m 600 "${NEW_ROOT}"/dev/console c 5 1
+	[ ! -e "${NEW_ROOT}/dev/tty0" ]    && run mknod -m 620 "${NEW_ROOT}"/dev/tty0 c 4 0
 	[ ! -e "${NEW_ROOT}/dev/ttyS0" ]   && run mknod -m 660 "${NEW_ROOT}"/dev/ttyS0 c 4 64
 
 	# For SGI LiveCDs
@@ -560,7 +561,8 @@ conf_rc_no_umounts() {
 	if nomount=$(grep -n '^[[:blank:]]*no_umounts=' ${conf})
 	then
 		local i n data cmd IFS
-		IFS=''
+		IFS='
+'
 		set -- ${nomount}
 		unset IFS
 
@@ -644,6 +646,15 @@ is_true() {
 		;;
 	esac
 	return 1
+}
+
+is_userinteraction_allowed() {
+	if [ -f "${GK_USERINTERACTION_DISABLED_STATEFILE}" ]
+	then
+		return 1
+	fi
+
+	return 0
 }
 
 # Function to create an ext2 fs on $aufs_dev, $aufs_dev_mnt mountpoint
@@ -819,7 +830,7 @@ setup_overlayfs() {
 	local workdir="${overlay}/.work"
 	local static=/mnt/livecd
 
-	rundebugshell overlayfs
+	run_debug_shell overlayfs
 	for i in "${overlay}" "${static}"
 	do
 		[ ! -d "${i}" ] && run mkdir -p "${i}"
@@ -999,18 +1010,32 @@ run() {
 	return ${retval}
 }
 
+run_debug_shell() {
+	is_debug || return
+
+	good_msg 'Starting debug shell as requested by "debug" option.'
+	good_msg "Run '${BOLD}gksosreport${NORMAL}' to generate debug report"
+	good_msg "in case you want to file a bug report."
+	good_msg "Stopping by: ${1}"
+	run_shell
+}
+
 run_emergency_shell() {
-	echo
-	gksosreport
-	good_msg 'You might want to save "/run/initramfs/gksosreport.txt" to a USB stick or /boot'
-	good_msg 'after mounting them and attach it to a bug report.'
+	if is_userinteraction_allowed
+	then
+		echo
+		gksosreport
+		good_msg 'You might want to save "/run/initramfs/gksosreport.txt" to a USB stick or /boot'
+		good_msg 'after mounting them and attach it to a bug report.'
+	fi
+
 	run_shell
 }
 
 run_shell() {
 	splashCmd 'verbose' >/dev/null &
 
-	if [ -f "${GK_USERINTERACTION_DISABLED_STATEFILE}" ]
+	if ! is_userinteraction_allowed
 	then
 		bad_msg "gk.userinteraction.disabled is set; Spawning a shell is disabled!"
 		return
@@ -1035,7 +1060,7 @@ run_shell() {
 		&& [ -c "${CONSOLE}" ]
 	then
 		log_msg "Opening rescue shell on ${CONSOLE} ..."
-		setsid ${SH} -c "exec sh --login <${CONSOLE} >${CONSOLE} 2>&1"
+		setsid ${SH} -c "exec sh --login 0<>${CONSOLE} 1<>${CONSOLE} 2<>${CONSOLE}"
 	elif command -v cttyhack 1>/dev/null 2>&1
 	then
 		log_msg "Opening rescue shell using cttyhack ..."
@@ -1043,11 +1068,15 @@ run_shell() {
 	elif [ -c '/dev/tty1' ]
 	then
 		log_msg "Opening rescue shell on /dev/tty1 fallback ..."
-		setsid ${SH} -c 'exec sh --login </dev/tty1 >/dev/tty1 2>&1'
+		setsid ${SH} -c "exec sh --login 0<>/dev/tty1 1<>/dev/tty1 2<>/dev/tty1"
 	else
 		log_msg "Opening rescue shell (last resort) ..."
 		${SH} --login
 	fi
+
+	# Leave function early when /dev/null does not exist anymore,
+	# i.e. after failed switch_root call
+	[ ! -e /dev/null ] && return
 
 	rm "${GK_SHELL_LOCKFILE}"
 
@@ -1055,7 +1084,7 @@ run_shell() {
 
 	# We maybe have called exec and dettached from main script; We
 	# must restore control...
-	exec >${CONSOLE} <${CONSOLE} 2>&1
+	exec 0<>${CONSOLE} 1<>${CONSOLE} 2<>${CONSOLE}
 }
 
 fs_type_in_use() {
@@ -1102,6 +1131,15 @@ test_success() {
 		bad_msg "${error_string}; Failing back to the shell ..."
 		run_emergency_shell
 	fi
+}
+
+trim() {
+	local var="$*"
+
+	var="${var#"${var%%[![:space:]]*}"}"  # remove leading whitespace characters
+	var="${var%"${var##*[![:space:]]}"}"  # remove trailing whitespace characters
+
+	printf "%s" "${var}"
 }
 
 log_msg() {
@@ -1194,7 +1232,7 @@ write_env_file() {
 	for varname in $*
 	do
 		eval varvalue=\$${varname}
-		echo "${varname}=${varvalue}" >> "${env_file}"
+		echo "${varname}='${varvalue}'" >> "${env_file}"
 	done
 }
 
@@ -1417,6 +1455,13 @@ cmdline_hwopts() {
 }
 
 setup_keymap() {
+	local console=$(get_active_console)
+	if echo "${console}" | grep -qF 'ttyS'
+	then
+		warn_msg "Active console is ${console}; Skipping dokeymap ..."
+		return
+	fi
+
 	if [ "${DO_keymap}" ]
 	then
 		if [ ! -e /dev/vc/0 -a ! -e /dev/tty0 ]
@@ -1842,6 +1887,10 @@ openLUKS() {
 		swap)
 			local TYPE=SWAP
 			;;
+		*)
+			bad_msg "OpenLUKS(): Unknown type '${1}' specified!"
+			exit 1
+			;;
 	esac
 
 	local LUKS_NAME="${1}"
@@ -1849,15 +1898,20 @@ openLUKS() {
 	eval local LUKS_KEY='"${CRYPT_'${TYPE}'_KEY}"'
 	eval local LUKS_KEYDEV='"${CRYPT_'${TYPE}'_KEYDEV}"'
 	eval local LUKS_KEYDEV_FSTYPE='"${CRYPT_'${TYPE}'_KEYDEV_FSTYPE}"'
-	eval local LUKS_TRIM='"${CRYPT_'${TYPE}'_TRIM}"'
+	eval local cryptsetup_options='"${CRYPT_'${TYPE}'_OPTIONS}"'
+	cryptsetup_options="$(trim "${cryptsetup_options}")"
 	eval local OPENED_LOCKFILE='"${CRYPT_'${TYPE}'_OPENED_LOCKFILE}"'
 	local DEV_ERROR=0 KEY_ERROR=0 KEYDEV_ERROR=0
 	local mntkey="/mnt/key/" crypt_filter_ret=
 
+	if [ -z "${LUKS_DEVICE}" ]
+	then
+		bad_msg "'crypt_${1}' kernel command-line argument is not set!"
+		exit 1
+	fi
+
 	while true
 	do
-		local cryptsetup_options=''
-
 		local gpg_cmd=""
 		local ply_cmd=""
 		if [ -e "${OPENED_LOCKFILE}" ]
@@ -1884,7 +1938,7 @@ openLUKS() {
 			LUKS_DEVICE=$(find_real_device "${LUKS_DEVICE}")
 			if [ -z "${LUKS_DEVICE}" ]
 			then
-				bad_msg "Looks like CRYPT_${TYPE} kernel cmdline argument is not set." ${CRYPT_SILENT}
+				bad_msg "Failed to find LUKS device. If crypt_${1} kernel command-line argument is correct you are probably missing kernel support for your storage!" ${CRYPT_SILENT}
 				DEV_ERROR=1
 				continue
 			fi
@@ -1895,10 +1949,9 @@ openLUKS() {
 				DEV_ERROR=1
 				continue
 			else
-				if [ "x${LUKS_TRIM}" = "xyes" ]
+				if [ -n "${cryptsetup_options}" ]
 				then
-					good_msg "Enabling TRIM support for ${LUKS_NAME} ..." ${CRYPT_SILENT}
-					cryptsetup_options="${cryptsetup_options} --allow-discards"
+					good_msg "Using the following cryptsetup options for ${LUKS_NAME}: ${cryptsetup_options}" ${CRYPT_SILENT}
 				fi
 
 				# Handle keys
@@ -2421,9 +2474,10 @@ start_sshd() {
 	write_env_file \
 		"${CRYPT_ENV_FILE}" \
 		CRYPT_ROOT \
-		CRYPT_ROOT_TRIM \
+		CRYPT_ROOT_OPTIONS \
 		CRYPT_SILENT \
-		CRYPT_SWAP
+		CRYPT_SWAP \
+		CRYPT_SWAP_OPTIONS
 
 	run touch /var/log/lastlog
 
@@ -2576,20 +2630,6 @@ cdupdate() {
 			good_msg 'No cdupdate.sh script found, skipping ...'
 		fi
 	fi
-}
-
-rundebugshell() {
-	if is_debug
-	then
-		good_msg 'Starting debug shell as requested by "debug" option.'
-		good_msg "Run '${BOLD}gksosreport${NORMAL}' to generate debug report"
-		good_msg "in case you want to file a bug report."
-	else
-		return 0
-	fi
-
-	good_msg "Stopping by: ${1}"
-	run_shell
 }
 
 do_resume() {
@@ -2789,6 +2829,21 @@ setup_unionfs() {
 	else
 		USE_UNIONFS_NORMAL=0
 	fi
+}
+
+get_active_console() {
+	local active_console=console
+
+	while [ -f /sys/class/tty/${active_console}/active ]
+	do
+		active_console=$(cat /sys/class/tty/${active_console}/active)
+
+		# last console will be the active one,
+		# see https://www.kernel.org/doc/html/latest/admin-guide/serial-console.html
+		active_console=${active_console##* }
+	done
+
+	echo ${active_console}
 }
 
 get_mounts_list() {

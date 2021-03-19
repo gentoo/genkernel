@@ -1,12 +1,13 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 src_configure() {
 	append-ldflags -static -pthread
-	export ac_cv_header_libaio_h=yes
 
 	local myconf=(
+		--disable-gcc-Werror
 		--enable-mpers=check
+		--enable-static
 		--without-libunwind
 		--without-libdw
 	)
@@ -19,8 +20,8 @@ src_configure() {
 src_install() {
 	mkdir -p "${D}"/usr/bin || die "Failed to create '${D}/usr/bin'!"
 
-	cp -a strace "${D}"/usr/bin/ \
-		|| die "Failed to copy '${S}/strace' to '${D}/usr/bin/'!"
+	cp -a src/strace "${D}"/usr/bin/ \
+		|| die "Failed to copy '${S}/src/strace' to '${D}/usr/bin/'!"
 
 	"${STRIP}" --strip-all "${D}"/usr/bin/strace \
 		|| die "Failed to strip '${D}/usr/bin/strace'!"

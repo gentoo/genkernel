@@ -21,7 +21,8 @@
 [ ! -e /dev/zero ]     && mknod /dev/zero c 1 5
 
 # Take control
-exec >${CONSOLE} <${CONSOLE} 2>&1
+CONSOLE="/dev/$(get_active_console)"
+exec 0<>${CONSOLE} 1<>${CONSOLE} 2<>${CONSOLE}
 
 if [ "$$" != '1' ]
 then
@@ -56,11 +57,6 @@ run busybox --install -s
 gk_ver="$(cat /etc/build_id)"
 gk_build_date="$(cat /etc/build_date)"
 kernel_ver="$(uname -r)"
-
-if [ "$0" = '/init' ]
-then
-	[ -e /linuxrc ] && run rm /linuxrc
-fi
 
 CMDLINE=$(cat /proc/cmdline)
 # Scan CMDLINE for any specified real_root= or cdroot arguments
@@ -182,12 +178,6 @@ do
 			MLIST=$(echo ${MLIST} ${x#*=} | sed -e 's/^\ *//;s/,/ /g')
 			export MLIST
 		;;
-		# Redirect output to a specific tty
-		CONSOLE=*|console=*)
-			NEW_CONSOLE=${x#*=}
-			NEW_CONSOLE=$(basename ${NEW_CONSOLE})
-			NEW_CONSOLE=${NEW_CONSOLE%%,*}
-		;;
 		splash)
 			if [ -x /usr/bin/plymouth -a -x /usr/sbin/plymouthd ]
 			then
@@ -202,8 +192,7 @@ do
 		;;
 		# /dev/md
 		lvmraid=*)
-			RAID_DEVICES="${x#*=}"
-			RAID_DEVICES="$(echo ${RAID_DEVICES} | sed -e 's/,/ /g')"
+			warn_msg "'${x}' kernel command-line argument is deprecated; Use 'dolvm' instead!"
 			USE_LVM_NORMAL=1
 		;;
 		part=*)
@@ -256,9 +245,15 @@ do
 			CRYPT_ROOT=${x#*=}
 			USE_CRYPTSETUP=1
 		;;
+		crypt_root_options=*)
+			CRYPT_ROOT_OPTIONS=$(echo ${CRYPT_ROOT_OPTIONS} ${x#*=} | sed -e 's/,/ /g')
+		;;
 		crypt_swap=*)
 			CRYPT_SWAP=${x#*=}
 			USE_CRYPTSETUP=1
+		;;
+		crypt_swap_options=*)
+			CRYPT_SWAP_OPTIONS=$(echo ${CRYPT_SWAP_OPTIONS} ${x#*=} | sed -e 's/,/ /g')
 		;;
 		root_key=*)
 			CRYPT_ROOT_KEY=${x#*=}
@@ -270,7 +265,12 @@ do
 			CRYPT_ROOT_KEYDEV_FSTYPE=${x#*=}
 		;;
 		root_trim=*)
-			CRYPT_ROOT_TRIM=${x#*=}
+			tmp_enabled=${x#*=}
+			if is_true "${tmp_enabled}"
+			then
+				CRYPT_ROOT_OPTIONS="${CRYPT_ROOT_OPTIONS} --allow-discards"
+			fi
+			unset tmp_enabled
 		;;
 		swap_key=*)
 			CRYPT_SWAP_KEY=${x#*=}
@@ -300,6 +300,24 @@ do
 				GK_BOOTFONT_DISABLED=1
 			fi
 			unset tmp_disabled
+		;;
+		gk.emergency=*)
+			tmp_action=${x#*=}
+			case "${tmp_action}" in
+				reboot)
+					GK_EMERGENCY_ACTION="reboot -f"
+					;;
+				poweroff)
+					GK_EMERGENCY_ACTION="poweroff -f"
+					;;
+				halt)
+					GK_EMERGENCY_ACTION="halt -f"
+					;;
+				*)
+					warn_msg "'${x}' is an unsupported emergency action -- ignored!"
+					;;
+			esac
+			unset tmp_action
 		;;
 		gk.hw.load-all=*)
 			tmp_disabled=${x#*=}
@@ -370,6 +388,15 @@ do
 			if is_true "${tmp_disabled}"
 			then
 				touch "${GK_USERINTERACTION_DISABLED_STATEFILE}"
+			fi
+			unset tmp_disabled
+		;;
+		gk.preserverun.disabled=*)
+			tmp_disabled=${x#*=}
+			if is_true "${tmp_disabled}"
+			then
+				warn_msg "gk.preserverun.disabled is set; /run will not be moved to newroot!"
+				GK_PRESERVE_RUN=0
 			fi
 			unset tmp_disabled
 		;;
@@ -452,26 +479,17 @@ do
 	esac
 done
 
-if [ -n "${NEW_CONSOLE}" ]
-then
-	# We cannot update console while processing CMDLINE because we
-	# are only interested in last console= value.
-	[ ! -c "${NEW_CONSOLE}" ] && NEW_CONSOLE="/dev/${NEW_CONSOLE}"
-	if [ -c "${NEW_CONSOLE}" ]
-	then
-		exec >${NEW_CONSOLE} <${NEW_CONSOLE} 2>&1
-		good_msg "Console switched from '${CONSOLE}' to '${NEW_CONSOLE}'!"
-		CONSOLE="${NEW_CONSOLE}"
-	else
-		bad_msg "Unable to switch console: '${NEW_CONSOLE}' not found or not a character device!"
-	fi
-fi
-
 good_msg "${gk_ver} (${gk_build_date}). Linux kernel ${kernel_ver}"
 
 if [ "${GK_BOOTFONT_DISABLED}" = '0' -a -e /lib/console/font ]
 then
-	hash setfont >/dev/null 2>&1 && run setfont /lib/console/font -C ${CONSOLE} 2>&1
+	if echo "$(get_active_console)" | grep -qF ttyS
+	then
+		warn_msg "Active console is ${console}; Not loading embedded boot font ..."
+	elif hash setfont >/dev/null 2>&1
+	then
+		run setfont /lib/console/font -C ${CONSOLE} 2>&1
+	fi
 fi
 
 quiet_kmsg
@@ -527,6 +545,14 @@ then
 	FIRSTMODS="${FIRSTMODS} crc32_generic"
 fi
 
+if [ "${ROOTFSTYPE}" = "btrfs" -o -x /sbin/btrfs ]
+then
+	# We have no mechanism to trigger btrfs module loading before UDEV's btrfs builtin
+	# will run; In addition, loading btrfs via UDEV could cause problems for slow
+	# machines, see https://github.com/dracutdevs/dracut/issues/658
+	FIRSTMODS="${FIRSTMODS} btrfs"
+fi
+
 cmdline_hwopts
 
 # Mount devfs
@@ -574,7 +600,7 @@ else
 fi
 
 # Run debug shell if requested
-rundebugshell "before starting udevd"
+run_debug_shell "before starting udevd"
 
 # Initialize udev
 if [ ! -f "/etc/udev/hwdb.bin" ]
@@ -675,7 +701,7 @@ run mkdir -p "${NEW_ROOT}"
 CHROOT="${NEW_ROOT}"
 
 # Run debug shell if requested
-rundebugshell "before setting up the root filesystem"
+run_debug_shell "before setting up the root filesystem"
 
 if [ "${CDROOT}" = '1' ]
 then
@@ -1338,32 +1364,49 @@ then
 fi
 
 # Run debug shell if requested
-rundebugshell "before entering switch_root"
+run_debug_shell "before switch_root"
+
+if [ "${GK_PRESERVE_RUN}" = '0' ]
+then
+	GK_INIT_LOG=
+	run umount /run
+fi
 
 # init_opts is set in the environment by the kernel when it parses the command line
 init=${REAL_INIT:-/sbin/init}
-if ! mountpoint "${CHROOT}" 1>/dev/null 2>&1
-then
-	bad_msg "${CHROOT} was not a mountpoint"
-elif chroot "${CHROOT}" test ! -x /${init#/}
-then
-	bad_msg "init=${init} does not exist in the rootfs!"
-elif [ $$ != 1 ]
-then
-	bad_msg "PID was not 1! switch_root would fail"
-else
-	good_msg "Switching to real root: switch_root ${CHROOT} ${init} ${init_opts}"
-	exec switch_root "${CHROOT}" "${init}" ${init_opts}
-fi
 
-# If we get here, something bad has happened
-splashCmd 'verbose'
+while true
+do
+	# switch_root can only be called from PID 1;
+	# So stay in loop as long as user is able
+	# to fix the problem.
 
-bad_msg "A fatal error has occured since ${init} did not"
-bad_msg "boot correctly. Trying to open a shell ..."
+	if  ! mountpoint "${CHROOT}" 1>/dev/null 2>&1
+	then
+		bad_msg "${CHROOT} is not a mountpoint; Was root device (${REAL_ROOT}) not mounted?"
+	elif ! chroot "${CHROOT}" test -x /${init#/} 1>/dev/null 2>&1
+	then
+		mounted_root_device=$(mountpoint -n /newroot 2>/dev/null | awk '{ print $1 }')
+		bad_msg "init (${init}) not found in mounted root device (${mounted_root_device})!"
+	else
+		break
+	fi
 
-exec /bin/bash
-exec /bin/sh
-exec /bin/ash
-exec /bin/dash
-exec sh
+	run_emergency_shell
+	if ! is_userinteraction_allowed
+	then
+		${GK_EMERGENCY_ACTION} || exit 1
+	fi
+done
+
+good_msg "Switching to real root: switch_root ${CHROOT} ${init} ${init_opts}"
+exec switch_root "${CHROOT}" "${init}" ${init_opts}
+
+# If we reached here, something went very badly wrong in the initramfs.
+# However, spawning a rescue shell at this point would not help anymore:
+#   1) We have to assume that switch_root has already messed with
+#      initramfs (i.e. we probably have no /dev anymore).
+#   2) Any shell we would spawn would become child of PID 1 which would
+#      prevent user from calling switch_root once the user believes the
+#      problem was fixed.
+${GK_EMERGENCY_ACTION} || exit 1

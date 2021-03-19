@@ -1,13 +1,18 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
+src_prepare() {
+	default
+
+	gkautoreconf
+}
+
 src_configure() {
-	export ac_cv_sys_symbol_underscore=no
+	export enable_pkg_config=yes
 
 	local myconf=(
 		--enable-static=yes
 		--disable-padlock-support
-		--enable-static=yes
 	)
 
 	CC_FOR_BUILD="$(tc-getBUILD_CC)" \

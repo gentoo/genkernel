@@ -24,6 +24,7 @@ src_configure() {
 		--disable-tools
 		--with-xz
 		--with-zlib
+		--with-zstd
 		--without-openssl
 	)
 
