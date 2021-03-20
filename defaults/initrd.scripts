@@ -419,7 +419,7 @@ cache_cd_contents() {
 			run cp -a ${CDROOT_PATH}/${LOOP} ${NEW_ROOT}/mnt/${LOOP}
 			if [ $? -ne 0 ]
 			then
-				warn_msg "Failed to cache the loop file! Lack of RAM?"
+				warn_msg "Failed to cache the loop file! Lack of RAM?" 0
 				run rm -rf ${NEW_ROOT}/mnt/${LOOP} 2>/dev/null
 				run rm -rf ${NEW_ROOT}/mnt/livecd.* 2>/dev/null
 				run rm -rf ${NEW_ROOT}/mnt/image.* 2>/dev/null
@@ -1013,10 +1013,10 @@ run() {
 run_debug_shell() {
 	is_debug || return
 
-	good_msg 'Starting debug shell as requested by "debug" option.'
-	good_msg "Run '${BOLD}gksosreport${NORMAL}' to generate debug report"
-	good_msg "in case you want to file a bug report."
-	good_msg "Stopping by: ${1}"
+	good_msg 'Starting debug shell as requested by "debug" option.' 0
+	good_msg "Run '${BOLD}gksosreport${NORMAL}' to generate debug report" 0
+	good_msg "in case you want to file a bug report." 0
+	good_msg "Stopping by: ${1}" 0
 	run_shell
 }
 
@@ -1025,8 +1025,8 @@ run_emergency_shell() {
 	then
 		echo
 		gksosreport
-		good_msg 'You might want to save "/run/initramfs/gksosreport.txt" to a USB stick or /boot'
-		good_msg 'after mounting them and attach it to a bug report.'
+		good_msg 'You might want to save "/run/initramfs/gksosreport.txt" to a USB stick or /boot' 0
+		good_msg 'after mounting them and attach it to a bug report.' 0
 	fi
 
 	run_shell
@@ -1048,8 +1048,8 @@ run_shell() {
 	export PS1='rescueshell \w \# '
 
 	echo
-	GOOD=${BLUE} good_msg "${NORMAL}Welcome to ${BOLD}${gk_ver}${NORMAL} (${gk_build_date}) ${BOLD}rescue shell${NORMAL}!"
-	GOOD=${BLUE} good_msg "${NORMAL}...running Linux kernel ${BOLD}${kernel_ver}${NORMAL}"
+	GOOD=${BLUE} good_msg "${NORMAL}Welcome to ${BOLD}${gk_ver}${NORMAL} (${gk_build_date}) ${BOLD}rescue shell${NORMAL}!" 0
+	GOOD=${BLUE} good_msg "${NORMAL}...running Linux kernel ${BOLD}${kernel_ver}${NORMAL}" 0
 	echo
 
 	# Avoid /dev/{console,tty0} due to "can't access tty; job control turned off" problem;
@@ -1170,25 +1170,21 @@ log_msg() {
 # $2 hide flag
 
 good_msg() {
-	[ -n "${QUIET}" ] && ! is_debug && return 0
-
 	local msg_string=${1}
 	msg_string="${msg_string:-...}"
 
 	log_msg "[OK] ${msg_string}"
 
-	[ "$2" != '1' ] && printf "%b\n" "${GOOD}>>${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+	[ "${2-${QUIET}}" != '1' ] && printf "%b\n" "${GOOD}>>${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
 }
 
 good_msg_n() {
-	[ -n "${QUIET}" ] && ! is_debug && return 0
-
 	local msg_string=${1}
 	msg_string="${msg_string:-...}"
 
 	log_msg "[OK] ${msg_string}"
 
-	[ "$2" != '1' ] && printf "%b" "${GOOD}>>${NORMAL}${BOLD} ${msg_string}"
+	[ "${2-${QUIET}}" != '1' ] && printf "%b" "${GOOD}>>${NORMAL}${BOLD} ${msg_string}"
 }
 
 bad_msg() {
@@ -1197,11 +1193,8 @@ bad_msg() {
 
 	log_msg "[!!] ${msg_string}"
 
-	if [ "$2" != '1' ]
-	then
-		splashCmd 'verbose' >/dev/null &
-		printf "%b\n" "${BAD}!!${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
-	fi
+    splashCmd 'verbose' >/dev/null &
+    printf "%b\n" "${BAD}!!${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
 }
 
 warn_msg() {
@@ -1210,7 +1203,7 @@ warn_msg() {
 
 	log_msg "[**] ${msg_string}"
 
-	[ "$2" != '1' ] && printf "%b\n" "${WARN}**${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+	[ "${2-${QUIET}}" != '1' ] && printf "%b\n" "${WARN}**${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
 }
 
 warn_msg_n() {
@@ -1219,7 +1212,7 @@ warn_msg_n() {
 
 	log_msg "[**] ${msg_string}"
 
-	[ "$2" != '1' ] && printf "%b" "${WARN}**${NORMAL}${BOLD} ${msg_string}"
+	[ "${2-${QUIET}}" != '1' ] && printf "%b" "${WARN}**${NORMAL}${BOLD} ${msg_string}"
 }
 
 write_env_file() {
@@ -1334,8 +1327,8 @@ prompt_user() {
 
 		if [ -f "${GK_SSHD_LOCKFILE}" ]
 		then
-			warn_msg "The lockfile at '${GK_SSHD_LOCKFILE}' exists."
-			warn_msg "The boot process will be paused until the lock is removed."
+			warn_msg "The lockfile at '${GK_SSHD_LOCKFILE}' exists." 0
+			warn_msg "The boot process will be paused until the lock is removed." 0
 			while true
 			do
 				if [ -f "${GK_SSHD_LOCKFILE}" ]
@@ -1350,7 +1343,7 @@ prompt_user() {
 		local timeout=${GK_PROMPT_TIMEOUT}
 		[ ${timeout} -eq 0 ] && timeout=10
 
-		warn_msg_n "System will automatically reboot in ${timeout} seconds ..."
+		warn_msg_n "System will automatically reboot in ${timeout} seconds ..." 0
 		while [ ${timeout} -gt 0 ]
 		do
 			let timeout=${timeout}-1
@@ -1386,7 +1379,7 @@ prompt_user() {
 
 			if [ -f "${GK_PROMPT_FILE}" ]
 			then
-				warn_msg "Timeout! Trying to read answer from '${GK_PROMPT_FILE}' ..."
+				warn_msg "Timeout! Trying to read answer from '${GK_PROMPT_FILE}' ..." 0
 				. "${GK_PROMPT_FILE}" && run rm "${GK_PROMPT_FILE}"
 			fi
 		fi
@@ -1395,11 +1388,11 @@ prompt_user() {
 	case $(eval echo '$'${1}) in
 		'q')
 			eval ${1}'='${oldvalue}
-			warn_msg "Skipping step, this will likely cause a boot failure."
+			warn_msg "Skipping step, this will likely cause a boot failure." 0
 			;;
 		'shell')
 			eval ${1}'='${oldvalue}
-			warn_msg "To leave and try again just press <Ctrl>+D"
+			warn_msg "To leave and try again just press <Ctrl>+D" 0
 			run_emergency_shell
 			;;
 		'')
@@ -1455,15 +1448,15 @@ cmdline_hwopts() {
 }
 
 setup_keymap() {
-	local console=$(get_active_console)
-	if echo "${console}" | grep -qF 'ttyS'
-	then
-		warn_msg "Active console is ${console}; Skipping dokeymap ..."
-		return
-	fi
-
 	if [ "${DO_keymap}" ]
 	then
+		local console=$(get_active_console)
+		if echo "${console}" | grep -qF 'ttyS'
+		then
+			warn_msg "Active console is ${console}; Skipping dokeymap ..."
+			return
+		fi
+
 		if [ ! -e /dev/vc/0 -a ! -e /dev/tty0 ]
 		then
 			DEVBIND=1
@@ -1707,6 +1700,7 @@ start_volumes() {
 
 				local lvm_cmd="run lvm vgscan 2>&1"
 				is_log_enabled && lvm_cmd="${lvm_cmd} | tee -a '${GK_INIT_LOG}'"
+				[ -n "${QUIET}" ] && lvm_cmd="${lvm_cmd} 1>/dev/null"
 
 				eval "${lvm_cmd}"
 				if [ $? -ne 0 ]
@@ -1722,6 +1716,7 @@ start_volumes() {
 			# To activate volumegroups on all devices in the cache
 			local lvm_cmd="run lvm vgchange -ay --sysinit 2>&1"
 			is_log_enabled && lvm_cmd="${lvm_cmd} | tee -a '${GK_INIT_LOG}'"
+			[ -n "${QUIET}" ] && lvm_cmd="${lvm_cmd} 1>/dev/null"
 
 			eval "${lvm_cmd}"
 			if [ $? -ne 0 ]
@@ -1743,6 +1738,7 @@ start_volumes() {
 
 			local zfs_cmd="run /sbin/zpool import -N -a ${ZPOOL_CACHE} ${ZPOOL_FORCE} 2>&1"
 			is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
+			[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 			eval "${zfs_cmd}"
 			if [ $? -ne 0 ]
@@ -1760,6 +1756,7 @@ start_volumes() {
 
 					local zfs_cmd="run /sbin/zpool export -f '${ZFS_POOL}' 2>&1"
 					is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
+					[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 					eval "${zfs_cmd}"
 					if [ $? -ne 0 ]
@@ -1771,6 +1768,7 @@ start_volumes() {
 
 					zfs_cmd="run /sbin/zpool import -N ${ZPOOL_CACHE} ${ZPOOL_FORCE} '${ZFS_POOL}' 2>&1"
 					is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
+					[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 					eval "${zfs_cmd}"
 					if [ $? -ne 0 ]
@@ -1783,6 +1781,7 @@ start_volumes() {
 
 				local zfs_cmd="run /sbin/zpool import -N ${ZPOOL_CACHE} ${ZPOOL_FORCE} '${ZFS_POOL}' 2>&1"
 				is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
+				[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 				eval "${zfs_cmd}"
 				if [ $? -ne 0 ]
@@ -1805,6 +1804,7 @@ start_iscsi() {
 
 		iscsi_cmd="run iscsistart -b 2>&1"
 		is_log_enabled && iscsi_cmd="${iscsi_cmd} | tee -a '${GK_INIT_LOG}'"
+		[ -n "${QUIET}" ] && iscsi_cmd="${iscsi_cmd} 1>/dev/null"
 
 		eval "${iscsi_cmd}"
 		if [ $? -ne 0 ]
@@ -1858,6 +1858,7 @@ start_iscsi() {
 
 		iscsi_cmd="run iscsistart -i '${ISCSI_INITIATORNAME}' -t '${ISCSI_TARGET}' -a '${ISCSI_ADDRESS}' ${ADDITIONAL} 2>&1"
 		is_log_enabled && iscsi_cmd="${iscsi_cmd} | tee -a '${GK_INIT_LOG}'"
+		[ -n "${QUIET}" ] && iscsi_cmd="${iscsi_cmd} 1>/dev/null"
 
 		eval "${iscsi_cmd}"
 		if [ $? -ne 0 ]
@@ -2229,12 +2230,12 @@ start_network() {
 			let interface_timeout_100msec_modulo=${interface_time_waited}%10
 			if [ ${interface_timeout_100msec_modulo} = 0 ]
 			then
-				printf "."
+				[ -z "${QUIET}" ] && printf "."
 			fi
 		fi
 	done
 
-	echo
+	[ -z "${QUIET}" ] && echo
 
 	if [ "${have_interface}" != '1' ]
 	then
@@ -2268,7 +2269,7 @@ start_network() {
 		local udhcpc_cmd="run udhcpc -i '${GK_NET_IFACE}' -n -t ${GK_NET_DHCP_RETRIES} -T ${GK_NET_TIMEOUT_DHCP} -R -p '${GK_NET_DHCP_PIDFILE}' 2>&1"
 		is_log_enabled && udhcpc_cmd="${udhcpc_cmd} | tee -a '${GK_INIT_LOG}'"
 
-		good_msg "Bringing up interface ${GK_NET_IFACE} using dhcp ..." ${QUIET}
+		good_msg "Bringing up interface ${GK_NET_IFACE} using dhcp ..."
 		eval "${udhcpc_cmd}"
 		if [ $? -ne 0 ]
 		then
@@ -2302,10 +2303,10 @@ start_network() {
 			kill_network
 		fi
 
-		good_msg "Bringing up interface ${GK_NET_IFACE} ..." ${QUIET}
+		good_msg "Bringing up interface ${GK_NET_IFACE} ..."
 		run ip link set "${GK_NET_IFACE}" up
 
-		good_msg "Setting address '${IP}' on ${GK_NET_IFACE} ..." ${QUIET}
+		good_msg "Setting address '${IP}' on ${GK_NET_IFACE} ..."
 		run ip addr add "${IP}" dev "${GK_NET_IFACE}"
 
 		if [ -n "${GK_NET_ROUTES}" ]
@@ -2313,14 +2314,14 @@ start_network() {
 			local route=
 			for route in ${GK_NET_ROUTES}
 			do
-				good_msg "Adding additional route '${route}' on ${GK_NET_IFACE} ..." ${QUIET}
+				good_msg "Adding additional route '${route}' on ${GK_NET_IFACE} ..."
 				run ip route add "${route}" dev "${GK_NET_IFACE}"
 			done
 		fi
 
 		if [ -n "${GK_NET_GW}" ]
 		then
-			good_msg "Adding default route via '${GK_NET_GW}' on ${GK_NET_IFACE} ..." ${QUIET}
+			good_msg "Adding default route via '${GK_NET_GW}' on ${GK_NET_IFACE} ..."
 			run ip route add default via "${GK_NET_GW}" dev "${GK_NET_IFACE}"
 		fi
 	fi
@@ -2350,7 +2351,7 @@ kill_network() {
 	# interface.
 	if ipv6_tentative
 	then
-		[ -z "${QUIET}" ] && good_msg_n "Waiting for tentative IPv6 addresses to complete DAD ..."
+		good_msg_n "Waiting for tentative IPv6 addresses to complete DAD ..."
 
 		local dad_timeout=10
 		while [ ${dad_timeout} -gt 0 ]
@@ -2369,7 +2370,7 @@ kill_network() {
 		fi
 	fi
 
-	[ -z "${QUIET}" ] && good_msg_n "Bringing down interface ${GK_NET_IFACE} ..."
+	good_msg_n "Bringing down interface ${GK_NET_IFACE} ..."
 
 	local deconfiguration_timeout=${GK_NET_TIMEOUT_DECONFIGURATION}
 	while [ ${deconfiguration_timeout} -gt 0 ]
@@ -2458,7 +2459,7 @@ start_sshd() {
 
 	if [ ! -f "${GK_NET_LOCKFILE}" ]
 	then
-		warn_msg "Network not started; Not starting sshd ..."
+		warn_msg "Network not started; Not starting sshd ..." 0
 		return
 	fi
 
@@ -2481,7 +2482,7 @@ start_sshd() {
 
 	run touch /var/log/lastlog
 
-	good_msg "Starting dropbear sshd ..." ${QUIET}
+	good_msg "Starting dropbear sshd ..."
 	run dropbear -p ${GK_SSHD_PORT} -R -P "${GK_SSHD_PIDFILE}" 2>/run/initramfs/dropbear.log
 	if [ $? -eq 0 ]
 	then
@@ -2520,16 +2521,16 @@ wait_sshd() {
 		fi
 		sleep 1
 		: $(( ssh_timeout -= 1 ))
-		printf "."
+		[ -z "${QUIET}" ] && printf "."
 	done
 
-	echo ""
+	[ -z "${QUIET}" ] && echo ""
 }
 
 kill_sshd() {
 	if [ -s "${GK_SSHD_PIDFILE}" ]
 	then
-		good_msg "Stopping dropbear sshd ..." ${QUIET}
+		good_msg "Stopping dropbear sshd ..."
 		run kill $(cat "${GK_SSHD_PIDFILE}")
 	fi
 }
@@ -2539,8 +2540,8 @@ cleanup() {
 	then
 		if [ -f "${GK_SSHD_LOCKFILE}" ]
 		then
-			warn_msg "The lockfile at '${GK_SSHD_LOCKFILE}' exists."
-			warn_msg "The boot process will be paused until the lock is removed."
+			warn_msg "The lockfile at '${GK_SSHD_LOCKFILE}' exists." 0
+			warn_msg "The boot process will be paused until the lock is removed." 0
 			while true
 			do
 				if [ -f "${GK_SSHD_LOCKFILE}" ]
@@ -2581,30 +2582,12 @@ sdelay() {
 		do
 			let SDELAY=${SDELAY}-1
 			sleep 1
-			printf "."
+			[ -z "${QUIET}" ] && printf "."
 		done
 		echo
 	elif [ "${CDROOT}" = '1' ]
 	then
 		good_msg 'Hint: Use scandelay[=seconds] if your live medium is slow and boot fails'
-	fi
-}
-
-quiet_kmsg() {
-	# if QUIET is set make the kernel less chatty
-	if [ -n "${QUIET}" ]
-	then
-		echo '0' > /proc/sys/kernel/printk \
-			&& log_msg "COMMAND: 'echo \"0\" > /proc/sys/kernel/printk'"
-	fi
-}
-
-verbose_kmsg() {
-	# if QUIET is set make the kernel less chatty
-	if [ -n "${QUIET}" ]
-	then
-		echo '6' > /proc/sys/kernel/printk \
-			&& log_msg "COMMAND: 'echo \"6\" > /proc/sys/kernel/printk'"
 	fi
 }
 

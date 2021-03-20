@@ -42,9 +42,6 @@ then
 	chmod 0750 /run/initramfs
 fi
 
-# Prevent superfluous printks from being printed to the console
-echo 1 > /proc/sys/kernel/printk
-
 if [ ! -s /etc/ld.so.cache ]
 then
 	# Looks like we were unable to run ldconfig during initramfs generation
@@ -54,6 +51,7 @@ fi
 # Set up symlinks
 run busybox --install -s
 
+console_loglevel="$(cut -b1 /proc/sys/kernel/printk 2>/dev/null || echo 7)"
 gk_ver="$(cat /etc/build_id)"
 gk_build_date="$(cat /etc/build_date)"
 kernel_ver="$(uname -r)"
@@ -479,6 +477,9 @@ do
 	esac
 done
 
+# Prevent superfluous printks from being printed to the console
+echo ${GK_CONSOLE_LOGLEVEL} > /proc/sys/kernel/printk
+
 good_msg "${gk_ver} (${gk_build_date}). Linux kernel ${kernel_ver}"
 
 if [ "${GK_BOOTFONT_DISABLED}" = '0' -a -e /lib/console/font ]
@@ -491,8 +492,6 @@ then
 		run setfont /lib/console/font -C ${CONSOLE} 2>&1
 	fi
 fi
-
-quiet_kmsg
 
 if [ "${CDROOT}" = '0' ]
 then
@@ -982,32 +981,32 @@ do
 			then
 				break
 			else
-				warn_msg "'${init_binary_file}' was not found, is not a file or is not executable, maybe a symlink?" ${QUIET}
+				warn_msg "'${init_binary_file}' was not found, is not a file or is not executable, maybe a symlink?"
 			fi
 
 			if [ -L "${init_binary_file}" ]
 			then
-				good_msg "Symlink detected! Assuming split /usr ..." ${QUIET}
+				good_msg "Symlink detected! Assuming split /usr ..."
 				break
 			else
-				warn_msg "'${init_binary_file}' is not a symlink, do we have at least /bin/sh?" ${QUIET}
+				warn_msg "'${init_binary_file}' is not a symlink, do we have at least /bin/sh?"
 			fi
 
 			if [ -f "${init_binary_fallback_file}" -a -x "${init_binary_fallback_file}" ]
 			then
 				REAL_INIT="${init_binary_fallback_file/${NEW_ROOT}}"
-				good_msg "Executable fallback file '${init_binary_fallback_file}' detected!" ${QUIET}
+				good_msg "Executable fallback file '${init_binary_fallback_file}' detected!"
 				break
 			else
-				warn_msg "'${init_binary_fallback_file}' was not found, is not a file or is not executable, maybe we are working with NFS?" ${QUIET}
+				warn_msg "'${init_binary_fallback_file}' was not found, is not a file or is not executable, maybe we are working with NFS?"
 			fi
 
 			if [ "${REAL_ROOT}" = "/dev/nfs" ]
 			then
-				good_msg "NFS detected!" ${QUIET}
+				good_msg "NFS detected!"
 				break
 			else
-				warn_msg "No NFS detected!" ${QUIET}
+				warn_msg "No NFS detected!"
 			fi
 
 			bad_msg "The filesystem mounted at ${REAL_ROOT} does not appear to be a valid /:"
@@ -1320,8 +1319,6 @@ then
 	CHROOT="${CHROOT}/${SUBDIR}"
 fi
 
-verbose_kmsg
-
 if [ "${aufs}" = '1' ]
 then
 	aufs_union_memory=${CHROOT}/.unions/memory
@@ -1398,6 +1395,13 @@ do
 		${GK_EMERGENCY_ACTION} || exit 1
 	fi
 done
+
+if [[ "${console_loglevel}" != "${GK_CONSOLE_LOGLEVEL}" ]]
+then
+	good_msg "Restoring console log level (${console_loglevel}) ..."
+	echo ${console_loglevel} > /proc/sys/kernel/printk \
+		&& log_msg "COMMAND: 'echo \"${console_loglevel}\" > /proc/sys/kernel/printk'"
+fi
 
 good_msg "Switching to real root: switch_root ${CHROOT} ${init} ${init_opts}"
 exec switch_root "${CHROOT}" "${init}" ${init_opts}
