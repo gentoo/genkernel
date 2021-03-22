@@ -85,16 +85,16 @@ modules_scan() {
 	fi
 
 	log_msg "Loading modules of module group '${1}' (smart loading: ${smart_loading}) ..."
-	[ -z "${QUIET}" ] && \
-		printf "%b" "${BOLD}   ::${NORMAL} Loading from ${1}: "
+	is_quiet \
+		|| printf "%b" "${BOLD}   ::${NORMAL} Loading from ${1}: "
 
 	for x in ${MODS}
 	do
 		MLOAD=$(echo ${MLIST} | sed -e "s/.*${x}.*/${x}/")
 		if [ "${MLOAD}" = "${x}" ] # Only module to no-load
 		then
-			[ -z "${QUIET}" ] && \
-				printf "%b\n" "${BOLD}   ::${NORMAL} Skipping ${x} ..."
+			is_quiet \
+				|| printf "%b\n" "${BOLD}   ::${NORMAL} Skipping ${x} ..."
 		elif [ "${MLOAD}" = "${MLIST}" ]
 		then
 			if [ "${smart_loading}" = "yes" ]
@@ -131,14 +131,15 @@ modules_scan() {
 				echo "not loaded"
 
 			! is_debug && [ "${loaded}" = "0" ] && \
-				[ -z "${QUIET}" ] && \
+				! is_quiet && \
 				printf "%b" "${x} "
 		else
-			[ -z "${QUIET}" ] && \
-				printf "%b\n" "${BOLD}   ::${NORMAL} Skipping ${x} ..."
+			is_quiet \
+				|| printf "%b\n" "${BOLD}   ::${NORMAL} Skipping ${x} ..."
 		fi
 	done
-	[ -z "${QUIET}" ] && echo
+
+	is_quiet || echo
 }
 
 uppercase() {
@@ -592,7 +593,7 @@ conf_rc_no_umounts() {
 }
 
 is_debug() {
-	is_debug=1
+	local is_debug=1
 
 	if [ -f "${GK_DEBUGMODE_STATEFILE}" ]
 	then
@@ -627,8 +628,17 @@ is_log_enabled() {
 	return 0
 }
 
+is_quiet() {
+	is_true "${QUIET}" && return 0
+
+	return 1
+}
+
 is_true() {
-	case "$1" in
+	case "${1}" in
+		1)
+			return 0
+		;;
 		[Tt][Rr][Uu][Ee])
 			return 0
 		;;
@@ -641,10 +651,8 @@ is_true() {
 		[Yy])
 			return 0
 		;;
-		1)
-			return 0
-		;;
 	esac
+
 	return 1
 }
 
@@ -1048,8 +1056,8 @@ run_shell() {
 	export PS1='rescueshell \w \# '
 
 	echo
-	GOOD=${BLUE} good_msg "${NORMAL}Welcome to ${BOLD}${gk_ver}${NORMAL} (${gk_build_date}) ${BOLD}rescue shell${NORMAL}!" 0
-	GOOD=${BLUE} good_msg "${NORMAL}...running Linux kernel ${BOLD}${kernel_ver}${NORMAL}" 0
+	GOOD=${BLUE} good_msg "${NORMAL}Welcome to ${BOLD}${GK_META_VERSION}${NORMAL} (${GK_META_BUILD_DATE}) ${BOLD}rescue shell${NORMAL}!" 0
+	GOOD=${BLUE} good_msg "${NORMAL}...running Linux kernel ${BOLD}${KV}${NORMAL}" 0
 	echo
 
 	# Avoid /dev/{console,tty0} due to "can't access tty; job control turned off" problem;
@@ -1175,7 +1183,7 @@ good_msg() {
 
 	log_msg "[OK] ${msg_string}"
 
-	[ "${2-${QUIET}}" != '1' ] && printf "%b\n" "${GOOD}>>${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+	is_true "${2-${QUIET}}" || printf "%b\n" "${GOOD}>>${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
 }
 
 good_msg_n() {
@@ -1184,7 +1192,7 @@ good_msg_n() {
 
 	log_msg "[OK] ${msg_string}"
 
-	[ "${2-${QUIET}}" != '1' ] && printf "%b" "${GOOD}>>${NORMAL}${BOLD} ${msg_string}"
+	is_true "${2-${QUIET}}" || printf "%b" "${GOOD}>>${NORMAL}${BOLD} ${msg_string}"
 }
 
 bad_msg() {
@@ -1193,8 +1201,8 @@ bad_msg() {
 
 	log_msg "[!!] ${msg_string}"
 
-    splashCmd 'verbose' >/dev/null &
-    printf "%b\n" "${BAD}!!${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+	splashCmd 'verbose' >/dev/null &
+	printf "%b\n" "${BAD}!!${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
 }
 
 warn_msg() {
@@ -1203,7 +1211,7 @@ warn_msg() {
 
 	log_msg "[**] ${msg_string}"
 
-	[ "${2-${QUIET}}" != '1' ] && printf "%b\n" "${WARN}**${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+	is_true "${2-${QUIET}}" || printf "%b\n" "${WARN}**${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
 }
 
 warn_msg_n() {
@@ -1212,7 +1220,7 @@ warn_msg_n() {
 
 	log_msg "[**] ${msg_string}"
 
-	[ "${2-${QUIET}}" != '1' ] && printf "%b" "${WARN}**${NORMAL}${BOLD} ${msg_string}"
+	is_true "${2-${QUIET}}" || printf "%b" "${WARN}**${NORMAL}${BOLD} ${msg_string}"
 }
 
 write_env_file() {
@@ -1232,7 +1240,7 @@ write_env_file() {
 crypt_filter() {
 	if [ "${CRYPT_SILENT}" = '1' ]
 	then
-		eval run ${1} >/dev/null 2>&1
+		eval run ${1}
 	elif [ "${PLYMOUTH}" = '1' ] && plymouth_running
 	then
 		run plymouth ask-for-password --prompt "Enter LUKS passphrase" \
@@ -1700,7 +1708,7 @@ start_volumes() {
 
 				local lvm_cmd="run lvm vgscan 2>&1"
 				is_log_enabled && lvm_cmd="${lvm_cmd} | tee -a '${GK_INIT_LOG}'"
-				[ -n "${QUIET}" ] && lvm_cmd="${lvm_cmd} 1>/dev/null"
+				is_quiet && lvm_cmd="${lvm_cmd} 1>/dev/null"
 
 				eval "${lvm_cmd}"
 				if [ $? -ne 0 ]
@@ -1716,7 +1724,7 @@ start_volumes() {
 			# To activate volumegroups on all devices in the cache
 			local lvm_cmd="run lvm vgchange -ay --sysinit 2>&1"
 			is_log_enabled && lvm_cmd="${lvm_cmd} | tee -a '${GK_INIT_LOG}'"
-			[ -n "${QUIET}" ] && lvm_cmd="${lvm_cmd} 1>/dev/null"
+			is_quiet && lvm_cmd="${lvm_cmd} 1>/dev/null"
 
 			eval "${lvm_cmd}"
 			if [ $? -ne 0 ]
@@ -1738,7 +1746,7 @@ start_volumes() {
 
 			local zfs_cmd="run /sbin/zpool import -N -a ${ZPOOL_CACHE} ${ZPOOL_FORCE} 2>&1"
 			is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
-			[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
+			is_quiet && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 			eval "${zfs_cmd}"
 			if [ $? -ne 0 ]
@@ -1756,7 +1764,7 @@ start_volumes() {
 
 					local zfs_cmd="run /sbin/zpool export -f '${ZFS_POOL}' 2>&1"
 					is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
-					[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
+					is_quiet && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 					eval "${zfs_cmd}"
 					if [ $? -ne 0 ]
@@ -1768,7 +1776,7 @@ start_volumes() {
 
 					zfs_cmd="run /sbin/zpool import -N ${ZPOOL_CACHE} ${ZPOOL_FORCE} '${ZFS_POOL}' 2>&1"
 					is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
-					[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
+					is_quiet && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 					eval "${zfs_cmd}"
 					if [ $? -ne 0 ]
@@ -1781,7 +1789,7 @@ start_volumes() {
 
 				local zfs_cmd="run /sbin/zpool import -N ${ZPOOL_CACHE} ${ZPOOL_FORCE} '${ZFS_POOL}' 2>&1"
 				is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
-				[ -n "${QUIET}" ] && zfs_cmd="${zfs_cmd} 1>/dev/null"
+				is_quiet && zfs_cmd="${zfs_cmd} 1>/dev/null"
 
 				eval "${zfs_cmd}"
 				if [ $? -ne 0 ]
@@ -1804,7 +1812,7 @@ start_iscsi() {
 
 		iscsi_cmd="run iscsistart -b 2>&1"
 		is_log_enabled && iscsi_cmd="${iscsi_cmd} | tee -a '${GK_INIT_LOG}'"
-		[ -n "${QUIET}" ] && iscsi_cmd="${iscsi_cmd} 1>/dev/null"
+		is_quiet && iscsi_cmd="${iscsi_cmd} 1>/dev/null"
 
 		eval "${iscsi_cmd}"
 		if [ $? -ne 0 ]
@@ -1858,7 +1866,7 @@ start_iscsi() {
 
 		iscsi_cmd="run iscsistart -i '${ISCSI_INITIATORNAME}' -t '${ISCSI_TARGET}' -a '${ISCSI_ADDRESS}' ${ADDITIONAL} 2>&1"
 		is_log_enabled && iscsi_cmd="${iscsi_cmd} | tee -a '${GK_INIT_LOG}'"
-		[ -n "${QUIET}" ] && iscsi_cmd="${iscsi_cmd} 1>/dev/null"
+		is_quiet && iscsi_cmd="${iscsi_cmd} 1>/dev/null"
 
 		eval "${iscsi_cmd}"
 		if [ $? -ne 0 ]
@@ -2230,12 +2238,12 @@ start_network() {
 			let interface_timeout_100msec_modulo=${interface_time_waited}%10
 			if [ ${interface_timeout_100msec_modulo} = 0 ]
 			then
-				[ -z "${QUIET}" ] && printf "."
+				is_quiet || printf "."
 			fi
 		fi
 	done
 
-	[ -z "${QUIET}" ] && echo
+	is_quiet || echo
 
 	if [ "${have_interface}" != '1' ]
 	then
@@ -2359,10 +2367,10 @@ kill_network() {
 			ipv6_tentative || break
 			sleep 1
 			: $(( dad_timeout -= 1 ))
-			[ -z "${QUIET}" ] && printf "."
+			is_quiet || printf "."
 		done
 
-		[ -z "${QUIET}" ] && echo ''
+		is_quiet || echo
 
 		if [ ${dad_timeout} -le 0 ]
 		then
@@ -2384,10 +2392,10 @@ kill_network() {
 		fi
 		sleep 1
 		: $(( deconfiguration_timeout -= 1 ))
-		[ -z "${QUIET}" ] && printf "."
+		is_quiet || printf "."
 	done
 
-	[ -z "${QUIET}" ] && echo ''
+	is_quiet || echo
 
 	if [ ${deconfiguration_timeout} -le 0 ]
 	then
@@ -2521,10 +2529,10 @@ wait_sshd() {
 		fi
 		sleep 1
 		: $(( ssh_timeout -= 1 ))
-		[ -z "${QUIET}" ] && printf "."
+		is_quiet || printf "."
 	done
 
-	[ -z "${QUIET}" ] && echo ""
+	is_quiet || echo
 }
 
 kill_sshd() {
@@ -2582,7 +2590,7 @@ sdelay() {
 		do
 			let SDELAY=${SDELAY}-1
 			sleep 1
-			[ -z "${QUIET}" ] && printf "."
+			is_quiet || printf "."
 		done
 		echo
 	elif [ "${CDROOT}" = '1' ]
@@ -2619,30 +2627,38 @@ do_resume() {
 	local device=$(find_real_device "${REAL_RESUME}")
 	if [ -z "${device}" ]
 	then
-		warn_msg "REAL_RESUME (${REAL_RESUME}) device not found; Skipping resume ..."
+		warn_msg "resume device (${REAL_RESUME}) not found; Skipping resume ..." 0
 		return 0
 	else
 		REAL_RESUME="${device}"
 	fi
 
+	local resume_tried=no
 	if [ -d /proc/suspend2 -o -d /sys/power/suspend2 -o -d /sys/power/tuxonice ]
 	then
 		tuxonice_resume
-	else
+		resume_tried=yes
+	elif [ -f /sys/power/resume ]
+	then
 		swsusp_resume
+		resume_tried=yes
+	fi
+
+	if is_true "${resume_tried}"
+	then
+		warn_msg "System is not resuming from ${REAL_RESUME}, probably because it wasn't suspended; Continue normal booting ..."
+	else
+		warn_msg "resume device (${REAL_RESUME}) specified but kernel is lacking proper hibernation support!"
 	fi
 }
 
 swsusp_resume() {
 	# determine swap resume partition
 	local device=$(ls -lL "${REAL_RESUME}" | sed 's/\  */ /g' | cut -d \  -f 5-6 | sed 's/,\ */:/')
-	if [ -f /sys/power/resume ]
-	then
-		log_msg "Trying to resume using swsusp ..."
-		log_msg "COMMAND: 'echo \"${device}\" > /sys/power/resume'"
-		echo "${device}" > /sys/power/resume
-		log_msg "System is not resuming from ${REAL_RESUME}, probably because it wasn't suspended; Continue normal booting ..."
-	fi
+
+	log_msg "Trying to resume using swsusp ..."
+	log_msg "COMMAND: 'echo \"${device}\" > /sys/power/resume'"
+	echo "${device}" > /sys/power/resume
 }
 
 tuxonice_resume() {
@@ -2708,7 +2724,6 @@ tuxonice_resume() {
 	echo "${REAL_RESUME}" > "${tuxonice_resumedev}"
 	log_msg "COMMAND: 'echo > ${tuxonice_do_resume}'"
 	echo > "${tuxonice_do_resume}"
-	log_msg "System is not resuming from ${REAL_RESUME}, probably because it wasn't suspended; Continue normal booting ..."
 }
 
 find_loop() {

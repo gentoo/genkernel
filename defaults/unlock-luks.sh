@@ -74,7 +74,7 @@ main() {
 
 			if ! run cryptsetup isLuks "${LUKS_DEVICE}"
 			then
-				bad_msg "The LUKS device ${LUKS_DEVICE} does not contain a LUKS header" "${CRYPT_SILENT}"
+				bad_msg "The LUKS device ${LUKS_DEVICE} does not contain a LUKS header" ${CRYPT_SILENT}
 
 				# User has SSH access and is able to call script again or
 				# able to investigate the problem on its own.
@@ -103,10 +103,10 @@ main() {
 				if [ ${crypt_filter_ret} -eq 0 ]
 				then
 					run touch "${OPENED_LOCKFILE}"
-					good_msg "LUKS device ${LUKS_DEVICE} opened" "${CRYPT_SILENT}"
+					good_msg "LUKS device ${LUKS_DEVICE} opened" ${CRYPT_SILENT}
 					break
 				else
-					bad_msg "Failed to open LUKS device ${LUKS_DEVICE}" "${CRYPT_SILENT}"
+					bad_msg "Failed to open LUKS device ${LUKS_DEVICE}" ${CRYPT_SILENT}
 
 					# We need to stop here with a non-zero exit code to prevent
 					# a loop when invalid keyfile was sent.

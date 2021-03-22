@@ -46,14 +46,20 @@ WHITE="[1;37m"
 # printf "[H[J"
 
 KV=$(uname -r)
-KMAJOR=$(echo $KV | cut -f1 -d.)
-KMINOR=$(echo $KV | cut -f2 -d.)
+KMAJOR=$(echo ${KV} | cut -f1 -d.)
+KMINOR=$(echo ${KV} | cut -f2 -d.)
 KVER="${KMAJOR}.${KMINOR}"
 MISCOPTS='debug detect'
 
-QUIET=''
+CONSOLE_LOGLEVEL=$(cut -b1 /proc/sys/kernel/printk 2>/dev/null || echo 7)
+
+QUIET=0
 ROOT_LINKS='bin sbin lib lib32 lib64 boot usr opt emul'
 ROOT_TREES='etc root home var'
+
+FAKE_ROOT=''
+FAKE_INIT=''
+FAKE_ROOTFLAGS=''
 
 REAL_ROOT=''
 NEW_ROOT='/newroot'
@@ -88,6 +94,8 @@ GK_NET_TIMEOUT_DAD=10
 GK_NET_TIMEOUT_DECONFIGURATION=10
 GK_NET_TIMEOUT_DHCP=10
 GK_NET_TIMEOUT_INTERFACE=10
+GK_META_BUILD_DATE=$(cat /etc/build_date 2>/dev/null || echo "Unknown")
+GK_META_VERSION=$(cat /etc/build_id 2>/dev/null || echo "Unknown")
 GK_PRESERVE_RUN=1
 GK_PROMPT_FILE='/tmp/current_prompt'
 GK_PROMPT_TIMEOUT=0
@@ -107,10 +115,13 @@ CRYPT_ROOT_KEYDEV_FSTYPE='auto'
 CRYPT_ROOT_KEYFILE='/tmp/root.key'
 CRYPT_ROOT_OPENED_LOCKFILE='/tmp/ROOT.opened'
 CRYPT_ROOT_OPTIONS=''
+CRYPT_SILENT=0
 CRYPT_SWAP_KEYDEV_FSTYPE='auto'
 CRYPT_SWAP_KEYFILE='/tmp/swap.key'
 CRYPT_SWAP_OPENED_LOCKFILE='/tmp/SWAP.opened'
 CRYPT_SWAP_OPTIONS=''
+
+ROOTFSTYPE='auto'
 
 ZFS_ENC_ENV_FILE='/etc/ZFS_ENC_ENV.conf'
 ZFS_ENC_OPENED_LOCKFILE='/tmp/ZFS.opened'
