@@ -1853,20 +1853,21 @@ check_disk_space_requirements() {
 			gen_die "--check-free-disk-space-bootdir value '${CHECK_FREE_DISK_SPACE_BOOTDIR}' is not a valid number!"
 		fi
 
-		available_free_disk_space=$(unset POSIXLY_CORRECT && df -BM "${BOOTDIR}" | awk '$3 ~ /[0-9]+/ { print $4 }')
+		available_free_disk_space="$(($(stat -fc '%f * %S' "${BOOTDIR}")))"
 		if [ -n "${available_free_disk_space}" ]
 		then
 			print_info 2 '' 1 0
 			print_info 2 "Checking for at least ${CHECK_FREE_DISK_SPACE_BOOTDIR} MB free disk space in '${BOOTDIR}' ..."
-			print_info 5 "df reading: ${available_free_disk_space}"
+			print_info 5 "stat(1) reading: ${available_free_disk_space} bytes free"
 
-			available_free_disk_space=${available_free_disk_space%M}
-			if [ ${available_free_disk_space} -lt ${CHECK_FREE_DISK_SPACE_BOOTDIR} ]
+			bytes_in_mb=1048576
+			minimum_free_space_bytes_bootdir="$((${CHECK_FREE_DISK_SPACE_BOOTDIR} * ${bytes_in_mb}))"
+			if [ "${available_free_disk_space}" -lt "${minimum_free_space_bytes_bootdir}" ]
 			then
-				gen_die "${CHECK_FREE_DISK_SPACE_BOOTDIR} MB free disk space is required in '${BOOTDIR}' but only ${available_free_disk_space} MB is available!"
+				gen_die "${CHECK_FREE_DISK_SPACE_BOOTDIR} MB free disk space is required in '${BOOTDIR}' but only ${available_free_disk_space} bytes is available!"
 			fi
 		else
-			print_warning 1 "Invalid df value; Skipping free disk space check for '${BOOTDIR}' ..."
+			print_warning 1 "Invalid stat(1) value; Skipping free disk space check for '${BOOTDIR}' ..."
 		fi
 	fi
 
@@ -1890,20 +1891,21 @@ check_disk_space_requirements() {
 			gen_die "--check-free-disk-space-kerneloutputdir value '${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR}' is not a valid number!"
 		fi
 
-		available_free_disk_space=$(unset POSIXLY_CORRECT && df -BM "${KERNEL_OUTPUTDIR}" | awk '$3 ~ /[0-9]+/ { print $4 }')
+		available_free_disk_space="$(($(stat -fc '%f * %S' "${KERNEL_OUTPUTDIR}")))"
 		if [ -n "${available_free_disk_space}" ]
 		then
 			print_info 2 '' 1 0
 			print_info 2 "Checking for at least ${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR} MB free disk space in '${KERNEL_OUTPUTDIR}' ..."
-			print_info 5 "df reading: ${available_free_disk_space}"
+			print_info 5 "stat(1) reading: ${available_free_disk_space} bytes free"
 
-			available_free_disk_space=${available_free_disk_space%M}
-			if [ ${available_free_disk_space} -lt ${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR} ]
+			bytes_in_mb=1048576
+			minimum_free_space_bytes_kerneloutputdir="$((${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR} * ${bytes_in_mb}))"
+			if [ "${available_free_disk_space}" -lt "${minimum_free_space_bytes_kerneloutputdir}" ]
 			then
-				gen_die "${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR} MB free disk space is required in '${KERNEL_OUTPUTDIR}' but only ${available_free_disk_space} MB is available!"
+				gen_die "${CHECK_FREE_DISK_SPACE_KERNELOUTPUTDIR} MB free disk space is required in '${KERNEL_OUTPUTDIR}' but only ${available_free_disk_space} bytes is available!"
 			fi
 		else
-			print_warning 1 "Invalid df value; Skipping free disk space check for '${KERNEL_OUTPUTDIR}' ..."
+			print_warning 1 "Invalid stat(1) value; Skipping free disk space check for '${KERNEL_OUTPUTDIR}' ..."
 		fi
 	fi
 }
