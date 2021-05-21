@@ -105,8 +105,11 @@ GK_SSHD_LOCKFILE='/tmp/remote-rescueshell.lock'
 GK_SSHD_PIDFILE='/var/run/dropbear.pid'
 GK_SSHD_PORT=22
 GK_SSHD_WAIT=
+<<<<<<< HEAD
+=======
 GK_UDEV_LOG='/run/initramfs/udevd.log'
 GK_UDEV_DEBUG=0
+>>>>>>> cdaef312247a3ed18c9fdcea084058e5f25a7f3e
 GK_UDEV_TIMEOUT=120
 GK_USERINTERACTION_DISABLED_STATEFILE='/tmp/user-interaction.disabled'
 

@@ -225,8 +225,16 @@ do
 			CRYPT_SWAP=${x#*=}
 			USE_CRYPTSETUP=1
 		;;
+<<<<<<< HEAD
+		root_header=*)
+			CRYPT_ROOT_HEADER=${x#*=}
+		;;
+		root_headerdev=*)
+			CRYPT_ROOT_HEADERDEV=${x#*=}
+=======
 		crypt_swap_options=*)
 			CRYPT_SWAP_OPTIONS=$(echo ${CRYPT_SWAP_OPTIONS} ${x#*=} | sed -e 's/,/ /g')
+>>>>>>> cdaef312247a3ed18c9fdcea084058e5f25a7f3e
 		;;
 		root_key=*)
 			CRYPT_ROOT_KEY=${x#*=}
@@ -338,6 +346,8 @@ do
 			fi
 			unset tmp_wait
 		;;
+<<<<<<< HEAD
+=======
 		gk.udev.debug=*)
 			tmp_enabled=${x#*=}
 			if is_true "${tmp_enabled}"
@@ -356,6 +366,7 @@ do
 			fi
 			unset tmp_timeout
 		;;
+>>>>>>> cdaef312247a3ed18c9fdcea084058e5f25a7f3e
 		gk.userinteraction.disabled=*)
 			tmp_disabled=${x#*=}
 			if is_true "${tmp_disabled}"
@@ -364,6 +375,8 @@ do
 			fi
 			unset tmp_disabled
 		;;
+<<<<<<< HEAD
+=======
 		gk.preserverun.disabled=*)
 			tmp_disabled=${x#*=}
 			if is_true "${tmp_disabled}"
@@ -373,6 +386,7 @@ do
 			fi
 			unset tmp_disabled
 		;;
+>>>>>>> cdaef312247a3ed18c9fdcea084058e5f25a7f3e
 		gk.prompt.timeout=*)
 			tmp_timeout=${x#*=}
 			if is_int "${tmp_timeout}"
