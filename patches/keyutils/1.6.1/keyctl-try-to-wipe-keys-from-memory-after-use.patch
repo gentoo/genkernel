@@ -1,0 +1,133 @@
+keyctl: try to wipe keys from memory after use
+
+The key being added or updated likely contains secrets so it would be best
+not to leave it in memory or in a core dump when no longer needed.
+
+Glibc 2.25+ provides the explicit_bzero() function that can be used for
+this purpose, let's utilize it if it is present.
+
+Tested by redefining exit(n) to abort() and inspecting the resulting core
+file for key data.
+
+diff --git a/keyctl.c b/keyctl.c
+index 4c5d91c65b3c..6dc8863e4ad9 100644
+--- a/keyctl.c
++++ b/keyctl.c
+@@ -32,6 +32,15 @@ struct command {
+ 
+ #define nr __attribute__((noreturn))
+ 
++static void try_wipe_memory(void *s, size_t n)
++{
++#if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
++#if __GLIBC_PREREQ(2,25)
++	explicit_bzero(s, n);
++#endif
++#endif
++}
++
+ static nr void act_keyctl___version(int argc, char *argv[]);
+ static nr void act_keyctl_show(int argc, char *argv[]);
+ static nr void act_keyctl_add(int argc, char *argv[]);
+@@ -403,6 +412,7 @@ static void act_keyctl_add(int argc, char *argv[])
+ 	dest = get_key_id(argv[4]);
+ 
+ 	ret = add_key(argv[1], argv[2], argv[3], strlen(argv[3]), dest);
++	try_wipe_memory(argv[3], strlen(argv[3]));
+ 	if (ret < 0)
+ 		error("add_key");
+ 
+@@ -432,6 +442,7 @@ static void act_keyctl_padd(int argc, char *argv[])
+ 	data = grab_stdin(&datalen);
+ 
+ 	ret = add_key(argv[1], argv[2], data, datalen, dest);
++	try_wipe_memory(data, datalen);
+ 	if (ret < 0)
+ 		error("add_key");
+ 
+@@ -524,13 +535,16 @@ static void act_keyctl_prequest2(int argc, char *argv[])
+ static void act_keyctl_update(int argc, char *argv[])
+ {
+ 	key_serial_t key;
++	int ret;
+ 
+ 	if (argc != 3)
+ 		format();
+ 
+ 	key = get_key_id(argv[1]);
+ 
+-	if (keyctl_update(key, argv[2], strlen(argv[2])) < 0)
++	ret = keyctl_update(key, argv[2], strlen(argv[2]));
++	try_wipe_memory(argv[2], strlen(argv[2]));
++	if (ret < 0)
+ 		error("keyctl_update");
+ 
+ 	exit(0);
+@@ -546,6 +560,7 @@ static void act_keyctl_pupdate(int argc, char *argv[])
+ 	key_serial_t key;
+ 	size_t datalen;
+ 	void *data;
++	int ret;
+ 
+ 	if (argc != 2)
+ 		format();
+@@ -553,7 +568,9 @@ static void act_keyctl_pupdate(int argc, char *argv[])
+ 	key = get_key_id(argv[1]);
+ 	data = grab_stdin(&datalen);
+ 
+-	if (keyctl_update(key, data, datalen) < 0)
++	ret = keyctl_update(key, data, datalen);
++	try_wipe_memory(data, datalen);
++	if (ret < 0)
+ 		error("keyctl_update");
+ 
+ 	exit(0);
+@@ -1199,6 +1216,7 @@ static void act_keyctl_session(int argc, char *argv[])
+ static void act_keyctl_instantiate(int argc, char *argv[])
+ {
+ 	key_serial_t key, dest;
++	int ret;
+ 
+ 	if (argc != 4)
+ 		format();
+@@ -1206,7 +1224,9 @@ static void act_keyctl_instantiate(int argc, char *argv[])
+ 	key = get_key_id(argv[1]);
+ 	dest = get_key_id(argv[3]);
+ 
+-	if (keyctl_instantiate(key, argv[2], strlen(argv[2]), dest) < 0)
++	ret = keyctl_instantiate(key, argv[2], strlen(argv[2]), dest);
++	try_wipe_memory(argv[2], strlen(argv[2]));
++	if (ret < 0)
+ 		error("keyctl_instantiate");
+ 
+ 	exit(0);
+@@ -1222,6 +1242,7 @@ static void act_keyctl_pinstantiate(int argc, char *argv[])
+ 	key_serial_t key, dest;
+ 	size_t datalen;
+ 	void *data;
++	int ret;
+ 
+ 	if (argc != 3)
+ 		format();
+@@ -1230,7 +1251,9 @@ static void act_keyctl_pinstantiate(int argc, char *argv[])
+ 	dest = get_key_id(argv[2]);
+ 	data = grab_stdin(&datalen);
+ 
+-	if (keyctl_instantiate(key, data, datalen, dest) < 0)
++	ret = keyctl_instantiate(key, data, datalen, dest);
++	try_wipe_memory(data, datalen);
++	if (ret < 0)
+ 		error("keyctl_instantiate");
+ 
+ 	exit(0);
+@@ -1794,6 +1817,7 @@ static void act_keyctl_dh_compute_kdf_oi(int argc, char *argv[])
+ 
+ 	ret = keyctl_dh_compute_kdf(private, prime, base, argv[5], oi,  oilen,
+ 				    buffer, buflen);
++	try_wipe_memory(oi, oilen);
+ 	if (ret < 0)
+ 		error("keyctl_dh_compute_kdf");
+ 
+-- 
+2.23.0
+

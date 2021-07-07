@@ -1,0 +1,27 @@
+# Copyright 1999-2019 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+src_prepare() {
+	default
+
+	sed -i \
+		-e "1iRPATH = -static" \
+		-e 's:-Werror::' \
+		-e '/^NO_SOLIB/d' \
+		Makefile || die
+}
+
+src_compile() {
+	export NO_SOLIB=1
+
+	gkmake keyctl
+}
+
+src_install() {
+	mkdir "${D}"/bin || die "Failed to create '${D}/bin'!"
+	cp -a keyctl "${D}"/bin/ \
+		|| die "Failed to copy '${S}/keyctl'!"
+
+	"${STRIP}" --strip-all "${D}"/bin/keyctl \
+		|| die "Failed to strip keyctl!"
+}

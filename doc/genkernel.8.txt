@@ -468,6 +468,12 @@ system is able to load multiple initramfs.
     `gpg --symmetric -o /path/to/LUKS-key.gpg /path/to/LUKS-key` .
     After that, re-point the *root_key* argument to the new .gpg file.
 
+*--*[*no-*]*keyctl*::
+    Includes or excludes support for keyutils keyctl.
+    This way a LUKS passphrase can be loaded into a keyring at boot time
+    to unlock multiple devices (root, swap, etc.) without retyping it for each
+    one.
+
 *--*[*no-*]*b2sum*::
     Includes or excludes b2sum in the initramfs.
     When enabled, this will compile coreutils' b2sum for you.
@@ -714,6 +720,24 @@ recognized by the kernel itself.
 
 *swap_keydev_fstype*=<...>::
     Used filesystem for *swap_keydev*. See *rootfstype* for more details.
+
+*keyctl_keydesc*=<...>::
+    Load a passphrase into a keyring at boot time under the key name provided
+    as an argument to this option.
+    This way multiple devices (root, swap, etc.) can be unlocked without
+    retyping the passphrase for each one.
+    You'll need to add this key name as a keyring token to every LUKS device
+    that it is supposed to unlock - have a look at cryptsetup 'token add'
+    operation.
+
+*keyctl_keykeep*::
+    Don't remove the newly added key before starting the real init.
+    Useful if you want to utilize it to unlock LUKS devices post-initramfs.
+
+*keyctl_keytimeout*=<...>::
+    Enable a timeout (in seconds) for the newly added key.
+    This option normally only makes sense when used together with the
+    *keyctl_keykeep* option.
 
 *crypt_silent*::
     Set this to silent all the output related to the cryptographic

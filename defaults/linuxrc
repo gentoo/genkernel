@@ -254,6 +254,15 @@ do
 		swap_keydev_fstype=*)
 			CRYPT_SWAP_KEYDEV_FSTYPE=${x#*=}
 		;;
+		keyctl_keydesc=*)
+			KEYCTL_KEYDESC=${x#*=}
+		;;
+		keyctl_keytimeout=*)
+			KEYCTL_KEYTIMEOUT=${x#*=}
+		;;
+		keyctl_keykeep)
+			KEYCTL_KEYKEEP=1
+		;;
 		real_resume=*|resume=*)
 			REAL_RESUME=${x#*=}
 		;;
@@ -638,10 +647,22 @@ then
 	start_sshd
 fi
 
+keyctl_keyadd
+
 # Initialize LUKS root device except for livecd's
 if [ "${CDROOT}" != '1' ]
 then
-	start_LUKS
+	if [ -n "${CRYPT_SWAP_KEY}" ] && [ -z "${CRYPT_SWAP_KEYDEV}" ]
+	then
+		# the swap key might be on the root fs so start it first in this case
+		start_LUKS_root
+		luks_root_started=1
+		start_LUKS_swap
+	else
+		# we don't need to start the root at all if we are resuming from suspend
+		start_LUKS_swap
+	fi
+
 	if [ "${NORESUME}" != '1' ] && [ -n "${REAL_RESUME}" ]
 	then
 		case "${REAL_RESUME}" in
@@ -672,6 +693,11 @@ then
 		esac
 
 		do_resume
+	fi
+
+	if [ -z "${luks_root_started}" ]
+	then
+		start_LUKS_root
 	fi
 fi
 
@@ -1042,7 +1068,8 @@ then
 		losetup /dev/loop0 "${CDROOT_PATH}/${LOOPEXT}${LOOP}"
 		test_success 'Preparing loop filesystem'
 
-		start_LUKS
+		start_LUKS_root
+		start_LUKS_swap
 
 		case ${LOOPTYPE} in
 			normal)
@@ -1283,6 +1310,8 @@ else
 		run mkdir -p "${aufs_union}/tmp/.initrd"
 	fi
 fi # if [ "${CDROOT}" = '1' ]
+
+keyctl_keyremove
 
 # Re-run to ensure $NEWROOT/etc/initramfs.mounts was processed at least once
 process_initramfs_mounts

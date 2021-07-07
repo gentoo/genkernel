@@ -398,6 +398,7 @@ determine_real_args() {
 	set_config_with_override STRING REAL_ROOT                             CMD_REAL_ROOT
 	set_config_with_override BOOL   LUKS                                  CMD_LUKS                                  "no"
 	set_config_with_override BOOL   GPG                                   CMD_GPG                                   "no"
+	set_config_with_override BOOL   KEYCTL                                CMD_KEYCTL                                "no"
 	set_config_with_override BOOL   MDADM                                 CMD_MDADM                                 "no"
 	set_config_with_override STRING MDADM_CONFIG                          CMD_MDADM_CONFIG
 	set_config_with_override BOOL   E2FSPROGS                             CMD_E2FSPROGS                             "no"
@@ -1064,6 +1065,7 @@ determine_real_args() {
 			FEATURES_REQUIRING_BUSYBOX+=( KEYMAP )
 			FEATURES_REQUIRING_BUSYBOX+=( LVM )
 			FEATURES_REQUIRING_BUSYBOX+=( LUKS )
+			FEATURES_REQUIRING_BUSYBOX+=( KEYCTL )
 			FEATURES_REQUIRING_BUSYBOX+=( MDADM )
 			FEATURES_REQUIRING_BUSYBOX+=( MULTIPATH )
 			FEATURES_REQUIRING_BUSYBOX+=( SPLASH )

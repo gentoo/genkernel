@@ -2008,6 +2008,54 @@ openLUKS() {
 	[ -d "${mntkey}" ] && run rmdir -p "${mntkey}" >/dev/null 2>&1
 }
 
+keyctl_keyadd() {
+	if [ -n "${KEYCTL_KEYDESC}" ]
+	then
+		if [ ! -x /bin/keyctl ]
+		then
+			bad_msg "keyctl program is missing. Was initramfs built without --keyctl parameter?"
+			exit 1
+		fi
+
+		# not using read to avoid secrets being left in memory
+		stty -echo
+		echo -n "Please type the key '${KEYCTL_KEYDESC}' for the user keyring then press Ctrl-D twice: "
+		KEYCTL_KEYID=`keyctl padd user "${KEYCTL_KEYDESC}" @u`
+		echo
+		stty echo
+
+		if [ -n "${KEYCTL_KEYID}" -a -n "${KEYCTL_KEYTIMEOUT}" ]
+		then
+			keyctl timeout "${KEYCTL_KEYID}" "${KEYCTL_KEYTIMEOUT}"
+		fi
+	fi
+}
+
+keyctl_keyremove() {
+	if [ -n "${KEYCTL_KEYID}" -a -z "${KEYCTL_KEYKEEP}" ]
+	then
+		if [ ! -x /bin/keyctl ]
+		then
+			bad_msg "keyctl program is missing. Was initramfs built without --keyctl parameter?"
+			exit 1
+		fi
+
+		keyctl revoke "${KEYCTL_KEYID}"
+		keyctl unlink "${KEYCTL_KEYID}" >/dev/null
+
+		# trust but verify
+		if keyctl show "${KEYCTL_KEYID}" >/dev/null 2>&1
+		then
+			# better reboot than leave the user passphrase accidentally exposed
+			bad_msg "unable to remove the newly added key from keyring, rebooting in 5 seconds for security"
+			sleep 5
+			reboot -f
+		fi
+
+		KEYCTL_KEYID=
+	fi
+}
+
 iface_name() {
 	local ifname="${1}"
 
@@ -2337,7 +2385,7 @@ ipv6_tentative() {
 	fi
 }
 
-start_LUKS() {
+start_LUKS_root() {
 	# if key is set but neither ssh enabled or key device is given, find
 	# the key device
 
@@ -2355,7 +2403,9 @@ start_LUKS() {
 			REAL_ROOT="/dev/mapper/root"
 		fi
 	fi
+}
 
+start_LUKS_swap() {
 	# same for swap, but no need to sleep if root was unencrypted
 	[ -n "${CRYPT_SWAP_KEY}" ] && [ -z "${CRYPT_SWAP_KEYDEV}" ] \
 		&& { [ -z "${CRYPT_ROOT}" ] && sleep 6; bootstrapKey "SWAP"; }
