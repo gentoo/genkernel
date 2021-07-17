@@ -688,6 +688,19 @@ recognized by the kernel itself.
     cryptsetup when opening swap volume. Can be specified multiple
     times or separate multiple options with a comma.
 
+*root_header*=<...>::
+    In case your encrypted root uses a LUKS detached header, you can
+    use a device like a usb pen to store the header file. This value
+    should be the key path relative to the mount point.
+
+*root_headerdev*=<...>::
+    If necessary provide the name of the device that carries the
+    root_header. If unset while using root_header, it will automatically
+    look for the device in every boot.
+
+*root_headerdev_fstype*=<...>::
+    Used filesystem for *root_headerdev*. See *rootfstype* for more details.
+
 *root_key*=<...>::
     In case your root is encrypted with a key, you can use a device
     like a  usb pen to store the key.  This value should be the key
@@ -705,6 +718,15 @@ recognized by the kernel itself.
     Enables TRIM support for a LUKS-based root device.  Only useful
     with SSD setups.  Have a look at 'https://en.wikipedia.org/wiki/TRIM'
     for more information.
+
+*swap_header*=<...>::
+    Same as root_header for swap.
+
+*swap_headerdev*=<...>::
+    Same as root_headerdev for swap.
+
+*swap_headerdev_fstype*=<...>::
+    Used filesystem for *swap_headerdev*. See *rootfstype* for more details.
 
 *swap_key*=<...>::
     Same as root_key for swap.
