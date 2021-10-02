@@ -289,7 +289,7 @@ then
 		:
 	else
 		print_warning 1 '' 1 0
-		print_warning 1 "Current kernel's LOCALVERSION is set to '${LOV}'; Will ignore set --kernel-localversion value '${KERNEL_LOCALVERSION}' because kernel was not build ..."
+		print_warning 1 "Current kernel's LOCALVERSION is set to '${LOV}'; Will ignore set --kernel-localversion value '${KERNEL_LOCALVERSION}' because kernel was not built ..."
 	fi
 fi
 
