@@ -163,6 +163,18 @@ do
 			MLIST=$(echo ${MLIST} ${x#*=} | sed -e 's/^\ *//;s/,/ /g')
 			export MLIST
 		;;
+		splash)
+			if [ -x /usr/bin/plymouth -a -x /usr/sbin/plymouthd ]
+			then
+				PLYMOUTH=1
+			fi
+		;;
+		splash=*)
+			if [ -e /etc/initrd.splash ]
+			then
+				FBSPLASH=1
+			fi
+		;;
 		# /dev/md
 		lvmraid=*)
 			warn_msg "'${x}' kernel command-line argument is deprecated; Use 'dolvm' instead!"
@@ -557,8 +569,6 @@ then
 	FIRSTMODS="${FIRSTMODS} btrfs"
 fi
 
-splash 'init'
-
 cmdline_hwopts
 
 # Mount devfs
@@ -635,6 +645,9 @@ else
 fi
 
 cd /
+
+# start splash; plymouth must start after udev
+splash 'init'
 
 # Start iSCSI
 if hash iscsistart >/dev/null 2>&1
@@ -1335,6 +1348,8 @@ keyctl_keyremove
 
 # Re-run to ensure $NEWROOT/etc/initramfs.mounts was processed at least once
 process_initramfs_mounts
+
+splash 'hasroot' "${NEW_ROOT}"
 
 # Execute script on the cdrom just before boot to update things if necessary
 cdupdate

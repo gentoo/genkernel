@@ -1031,6 +1031,8 @@ run_emergency_shell() {
 }
 
 run_shell() {
+	splash 'verbose' >/dev/null &
+
 	if ! is_userinteraction_allowed
 	then
 		bad_msg "gk.userinteraction.disabled is set; Spawning a shell is disabled!"
@@ -1226,9 +1228,22 @@ write_env_file() {
 }
 
 crypt_filter() {
+	local ask_pass=${2}
+	good_msg "Using the following decryption command: ${1}" ${CRYPT_SILENT}
+
 	if [ "${CRYPT_SILENT}" = '1' ]
 	then
 		eval run ${1}
+	elif [ "${PLYMOUTH}" = '1' ] && [ ${ask_pass} -eq 1 ]
+	then
+		local ply_cmd_file="$(mktemp -t 'ply_cmd.XXXXXX' 2>/dev/null)"
+		printf '#!/bin/sh\n%s\n' "${1}" > "${ply_cmd_file}"
+		run chmod 500 "${ply_cmd_file}"
+		plymouthRun ask-for-password --prompt "Enter LUKS passphrase" \
+			--number-of-tries=3 --command="${ply_cmd_file}"
+		res=$?
+		run rm "${ply_cmd_file}" >/dev/null 2>&1
+		return ${res}
 	else
 		splash 'verbose' >/dev/null &
 		eval run ${1}
@@ -1306,6 +1321,7 @@ prompt_user() {
 	fi
 	[ -n "${3}" ] && local explnt=" or : ${3}" || local explnt="."
 
+	splash 'verbose' >/dev/null &
 	bad_msg "Could not find the ${2} in ${oldvalue}${explnt}"
 
 	if [ -f "${GK_USERINTERACTION_DISABLED_STATEFILE}" ]
@@ -1388,6 +1404,8 @@ prompt_user() {
 			eval ${1}'='${oldvalue}
 			;;
 	esac
+
+	splash 'quiet' >/dev/null &
 }
 
 cmdline_hwopts() {
@@ -1550,7 +1568,64 @@ copyKeymap() {
 }
 
 splash() {
-	return 0
+	if [ "${FBSPLASH}" = '1' ]
+	then
+		return 0
+	elif [ "${PLYMOUTH}" = '1' ]
+	then
+		case "${1}" in
+			init)
+			plymouthInit
+			;;
+
+			verbose)
+			plymouthRun --hide-splash
+			;;
+
+			set_msg)
+			plymouthRun --update="${2}"
+			;;
+
+			quiet)
+			plymouthRun --show-splash
+			;;
+
+			hasroot)
+			plymouthRun --newroot="${2}"
+			;;
+		esac
+	fi
+}
+
+plymouthRun() {
+	run plymouth --ping 2>/dev/null || return $?
+	run plymouth "${@}" 2>/dev/null
+}
+
+plymouthInit() {
+	good_msg "Starting Plymouth..."
+	run mkdir -p -m 0755 /run/plymouth || return 1
+
+	# Make sure that udev is done loading tty and drm
+	run udevadm trigger --action=add --attr-match=class=0x030000 >/dev/null 2>&1
+	run udevadm trigger --action=add --subsystem-match=graphics \
+		--subsystem-match=drm --subsystem-match=tty >/dev/null 2>&1
+	udevsettle
+
+	run plymouthd --mode=boot --attach-to-session \
+		--pid-file=/run/plymouth/pid
+	if [ $? -ne 0 ]
+	then
+		bad_msg "Can't start plymouthd!"
+		PLYMOUTH=0
+		return 1
+	fi
+
+	plymouthRun --show-splash
+	if [ $? -eq 0 ]
+	then
+		good_msg "Plymouth initialized"
+	fi
 }
 
 start_volumes() {
@@ -1825,6 +1900,7 @@ openLUKS() {
 	eval local LUKS_KEYDEV='"${CRYPT_'${TYPE}'_KEYDEV}"'
 	eval local LUKS_KEYDEV_FSTYPE='"${CRYPT_'${TYPE}'_KEYDEV_FSTYPE}"'
 	eval local OPENED_LOCKFILE='"${CRYPT_'${TYPE}'_OPENED_LOCKFILE}"'
+	local ASK_PASS=0
 	local DEV_ERROR=0
 	local HEADER_ERROR=0 HEADERDEV_ERROR=0
 	local KEY_ERROR=0 KEYDEV_ERROR=0
@@ -2054,12 +2130,25 @@ openLUKS() {
 					else
 						[ -e /dev/tty ] && run mv /dev/tty /dev/tty.org
 						run mknod /dev/tty c 5 1
+						ASK_PASS=1
 						cryptsetup_options="${cryptsetup_options} -d -"
-						gpg_cmd="gpg --logger-file /dev/null --quiet --decrypt ${mntkey}${LUKS_KEY} |"
+						gpg_cmd="gpg --logger-file /dev/null --quiet"
+						# plymouth password entry is passed through STDIN, requiring '--passphrase-fd 0 --batch'
+						# for newer gpg versions (>=2.1) '--pinentry-mode loopback' may also be required for the above
+						# '--no-tty' is included to prevent interruption of plymouth by any gpg output
+						if [ "${PLYMOUTH}" = '1' -a "${CRYPT_SILENT}" != '1' ]
+						then
+							gpg_cmd="${gpg_cmd} --passphrase-fd 0 --batch --no-tty --decrypt ${mntkey}${LUKS_KEY} | "
+						else
+							gpg_cmd="${gpg_cmd} --decrypt ${mntkey}${LUKS_KEY} | "
+						fi
 					fi
 				else
 					cryptsetup_options="${cryptsetup_options} -d ${mntkey}${LUKS_KEY}"
 				fi
+			else
+				# no keyfile defined, password is required
+				ASK_PASS=1
 			fi
 
 			if [ -n "${cryptsetup_options}" ]
@@ -2068,7 +2157,7 @@ openLUKS() {
 			fi
 
 			# At this point, {header,key}file or not, we're ready!
-			crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
+			crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}" "${ASK_PASS}"
 			crypt_filter_ret=$?
 
 			[ -e /dev/tty.org ] \

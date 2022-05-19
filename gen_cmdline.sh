@@ -53,6 +53,8 @@ longusage() {
   echo "	--no-mrproper		Do not run 'make mrproper' before compilation"
   echo "	--splash		Install framebuffer splash support into initramfs"
   echo "	--no-splash		Do not install framebuffer splash"
+  echo "	--plymouth		Enable Plymouth support"
+  echo "	--no-plymouth		Do not enable Plymouth support"
   echo "	--install		Install the kernel after building"
   echo "	--no-install		Do not install the kernel after building"
   echo "	--symlink		Manage symlinks in /boot for installed images"
@@ -127,6 +129,7 @@ longusage() {
   echo "	--splash-res=<res>	Select splash theme resolutions to install"
   echo "	--splash=<theme>	Enable framebuffer splash using <theme>"
   echo "	--splash-res=<res>	Select splash theme resolutions to install"
+  echo "	--plymouth-theme=<theme>    Embed the given Plymouth theme"
   echo "	--do-keymap-auto	Forces keymap selection at boot"
   echo "	--keymap		Enables keymap selection support"
   echo "	--no-keymap		Disables keymap selection support"
@@ -671,6 +674,17 @@ parse_cmdline() {
 		--splash-res=*)
 			SPLASH_RES="${*#*=}"
 			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
+			;;
+		--plymouth)
+			CMD_PLYMOUTH="yes"
+			PLYMOUTH_THEME='text'
+			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
+			;;
+		--plymouth-theme=*)
+			CMD_PLYMOUTH="yes"
+			PLYMOUTH_THEME="${*#*=}"
+			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
+			print_info 3 "PLYMOUTH_THEME: ${PLYMOUTH_THEME}"
 			;;
 		--install|--no-install)
 			CMD_INSTALL=$(parse_optbool "$*")

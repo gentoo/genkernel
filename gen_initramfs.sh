@@ -483,6 +483,7 @@ append_base_layout() {
 	isTrue "${UNIONFS}" && build_parameters+=( --unionfs ) || build_parameters+=( --no-unionfs )
 	isTrue "${ZFS}" && build_parameters+=( --zfs ) || build_parameters+=( --no-zfs )
 	isTrue "${SPLASH}" && build_parameters+=( --splash ) || build_parameters+=( --no-splash )
+	isTrue "${PLYMOUTH}" && build_parameters+=( --plymouth ) || build_parameters+=( --no-plymouth )
 	isTrue "${STRACE}" && build_parameters+=( --strace ) || build_parameters+=( --no-strace )
 	isTrue "${KEYCTL}" && build_parameters+=( --keyctl ) || build_parameters+=( --no-keyctl )
 	isTrue "${GPG}" && build_parameters+=( --gpg ) || build_parameters+=( --no-gpg )
@@ -1330,6 +1331,61 @@ append_splash() {
 	fi
 }
 
+append_plymouth() {
+	local PN=plymouth
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	# set plymouth theme
+	if [ -n "${PLYMOUTH_THEME}" ]
+	then
+		plymouth-set-default-theme ${PLYMOUTH_THEME} || gen_die "Failed to set default plymouth theme!"
+	fi
+	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
+	then
+		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default plymouth theme!"
+	fi
+	if [ -z "${PLYMOUTH_THEME}" ]
+	then
+		PLYMOUTH_THEME=text
+	fi
+
+	print_info 1 "$(get_indent 1)>> Installing plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
+
+	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
+		|| gen_die "Failed to build plymouth cpio archive!"
+
+	# can probably get rid of this; depends if plymouth was built with static libs
+	# rm -f "${TDIR}"/lib*/{ld*,libc*,libz*} \
+		# || gen_die "Failed to clean up plymouth cpio archive!"
+
+	ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" "${TDIR}/usr/share/plymouth/themes/default.plymouth" \
+		|| gen_die "Failed to set the default plymouth theme!"
+
+	# include required udev rules
+	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
+	cp -aL /lib/udev/rules.d/70-uaccess.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '70-uaccess.rules'!"
+	cp -aL /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
+
+	# clean up
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
 append_strace() {
 	local PN=strace
 	local TDIR="${TEMP}/initramfs-${PN}-temp"
@@ -2086,6 +2142,7 @@ create_initramfs() {
 	append_data 'modprobed'
 	append_data 'multipath' "${MULTIPATH}"
 	append_data 'splash' "${SPLASH}"
+	append_data 'plymouth' "${PLYMOUTH}"
 	append_data 'strace' "${STRACE}"
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"
