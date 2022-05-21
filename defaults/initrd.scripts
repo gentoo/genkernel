@@ -1848,7 +1848,7 @@ openLUKS() {
 			good_msg "The LUKS device ${LUKS_DEVICE} meanwhile was opened by someone else."
 			break
 		# if crypt_silent=1 and some error occurs, enter shell quietly
-		elif [ \( ${CRYPT_SILENT} -eq 1 \) -a \( \( \( ${DEV_ERROR} -eq 1 \) \) ]
+		elif [ \( ${CRYPT_SILENT} -eq 1 \) -a \( \( ${DEV_ERROR} -eq 1 \) \) ]
 		then
 			run_emergency_shell
 		elif [ \( ${CRYPT_SILENT} -eq 1 \) -a \( \( \( ${HEADER_ERROR} -eq 1 \) \) -o \( ${HEADERDEV_ERROR} -eq 1 \) \) ]
@@ -2440,15 +2440,11 @@ ipv6_tentative() {
 start_LUKS() {
 	# if key is set but neither ssh enabled or key device is given, find
 	# the key device
+	[ -n "${CRYPT_ROOT_KEY}" ] && [ -z "${CRYPT_ROOT_KEYDEV}" ] \
+		&& sleep 6 && bootstrapKey "ROOT"
 
-	if [ -n "${CRYPT_ROOT_KEY}" ]
-	then
-		( [ -z "${CRYPT_ROOT_KEYDEV}" ] || [ -z "${CRYPT_ROOT_HEADERDEV}" ] ) \
-			&& sleep 6
-
-		[ -z "${CRYPT_ROOT_KEYDEV}" ] && bootstrapKey "ROOT"
-		[ -z "${CRYPT_ROOT_HEADERDEV}" ] && bootstrapHeader "ROOT"
-	fi
+	[ -n "${CRYPT_ROOT_HEADER}" ] && [ -z "${CRYPT_ROOT_HEADERDEV}" ] \
+		&& sleep 6 && bootstrapHeader "ROOT"
 
 	if [ -n "${CRYPT_ROOT}" ]
 	then
@@ -2462,15 +2458,13 @@ start_LUKS() {
 		fi
 	fi
 
-	if [ -n "${CRYPT_SWAP_KEY}" ]
-	then
-		# same for swap, but no need to sleep if root was unencrypted
-		( [ -z "${CRYPT_ROOT_KEYDEV}" ] || [ -z "${CRYPT_ROOT_HEADERDEV}" ] ) \
-			&& [ -z "${CRYPT_ROOT}" ] && sleep 6
+	# same for swap, but no need to sleep if root was unencrypted
+	[ -n "${CRYPT_SWAP_KEY}" ] && [ -z "${CRYPT_SWAP_KEYDEV}" ] \
+		&& { [ -z "${CRYPT_ROOT}" ] && sleep 6; bootstrapKey "SWAP"; }
 
-		[ -z "${CRYPT_SWAP_KEYDEV}" ] && bootstrapKey "SWAP"
-		[ -z "${CRYPT_SWAP_HEADERDEV}" ] && bootstrapHeader "SWAP"
-	fi
+	# same for swap header, but no need to sleep if root was unencrypted
+	[ -n "${CRYPT_SWAP_HEADER}" ] && [ -z "${CRYPT_SWAP_HEADERDEV}" ] \
+		&& { [ -z "${CRYPT_ROOT}" ] && sleep 6; bootstrapHeader "SWAP"; }
 
 	if [ -n "${CRYPT_SWAP}" ]
 	then
