@@ -1028,12 +1028,12 @@ determine_real_args() {
 
 		if isTrue "${PLYMOUTH}" && ! isTrue "${FIRMWARE}"
 		then
-			gen_die "--plymouth requires --firmware but --no-firmware is set!"
+			print_warning 3 "--plymouth potentially requires graphics firmware to function! Please configure your --firmware flags appropriately!"
 		fi
 
 		if isTrue "${PLYMOUTH}" && ! isTrue "${ALLRAMDISKMODULES}"
 		then
-			gen_die "--plymouth requires --all-ramdisk-modules but --no-all-ramdisk-modules is set!"
+			print_warning 3 "--plymouth potentially requires DRM kernel modules to function! Please configure your --ramdisk-modules flags appropriately!"
 		fi
 
 		if isTrue "${SSH}"
