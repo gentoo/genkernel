@@ -1,69 +1,63 @@
 #!/bin/bash
 # $Id$
 
+mod_dep_list() {
+	if [ ! -f "${TEMP}/moddeps" ]
+	then
+		gen_dep_list > "${TEMP}/moddeps"
+	fi
+
+	cat "${TEMP}/moddeps"
+}
+
 gen_dep_list() {
+	local moddir="${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}"
+
 	if isTrue "${ALLRAMDISKMODULES}"
 	then
-		strip_mod_paths $(find "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}" -name "*${KEXT}") | sort
+		cat "${moddir}/modules.builtin"
+		cat "${moddir}/modules.order"
 	else
-		rm -f "${TEMP}/moddeps" >/dev/null
+		local -a modlist=()
 
-		local group_modules
-		for group_modules in ${!MODULES_*} GK_INITRAMFS_ADDITIONAL_KMODULES
+		local mygroups
+		for mygroups in ${!MODULES_*} GK_INITRAMFS_ADDITIONAL_KMODULES
 		do
-			gen_deps ${!group_modules}
+			modlist+=( ${!mygroups} )
 		done
 
-		# Only list each module once
-		if [ -f "${TEMP}/moddeps" ]
-		then
-			cat "${TEMP}/moddeps" | sort | uniq
-		fi
-	fi
-}
+		modlist=( $(printf '%s\n' "${modlist[@]}" | sort | uniq) )
 
-gen_deps() {
-	local modlist
-	local deps
+		modlist+=( $(
+			local -a rxargs=( "${modlist[@]}" )
 
-	local x
-	for x in ${*}
-	do
-		echo ${x} >> "${TEMP}/moddeps"
-		modlist=$(modules_dep_list ${x})
-		if [ "${modlist}" != "" -a "${modlist}" != " " ]
-		then
-			deps=$(strip_mod_paths ${modlist})
-		else
-			deps=""
-		fi
+			rxargs=( "${rxargs[@]/#/-ealias\ }" )
+			rxargs=( "${rxargs[@]/%/\ }" )
 
-		local y
-		for y in ${deps}
+			cat "${moddir}/modules.alias" \
+				| grep -F "${rxargs[@]}" \
+				| cut -d' ' -f3-
+		) )
+
+		modlist=( $(printf '%s\n' "${modlist[@]}" | sort | uniq) )
+
+		local mydeps mymod
+		while IFS=" " read -r -u 3 mymod mydeps
 		do
-			echo ${y} >> "${TEMP}/moddeps"
-		done
-	done
-}
+			echo ${mymod%:}
+			printf '%s\n' ${mydeps}
+		done 3< <(
+			local -a rxargs=( "${modlist[@]}" )
 
-modules_dep_list() {
-	if [ -f "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}/modules.dep" ]
-	then
-		grep -F -- "/${1}${KEXT}:" "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}/modules.dep" | cut -d\:  -f2
-	fi
-}
+			rxargs=( "${rxargs[@]/#/-e\/}" )
+			rxargs=( "${rxargs[@]/%/${KEXT}:}" )
 
-# Pass module deps list
-strip_mod_paths() {
-	local x
-	local ret
-	local myret
+			cat "${moddir}/modules.builtin" \
+				| xargs printf '%s:\n' \
+				| grep -F "${rxargs[@]}"
 
-	for x in ${*}
-	do
-		ret=$(basename ${x} | cut -d. -f1)
-		myret="${myret} ${ret}"
-	done
-
-	echo "${myret}"
+			cat "${moddir}/modules.dep" \
+				| grep -F "${rxargs[@]}"
+		)
+	fi | xargs basename -s "${KEXT}" | sort | uniq
 }

@@ -347,13 +347,6 @@ config_kernel() {
 		unset kconfig_md5sum_old kconfig_md5sum_new
 	fi
 
-	# Check for suitable kmod
-	determine_KEXT
-	if ! isTrue "$(is_kext_supported_by_kmod "${KEXT}")"
-	then
-		gen_die "${KMOD_CMD} does not support chosen module compression algorithm. Please re-emerge sys-apps/kmod with USE=$(get_kext_kmod_use_flag "${KEXT}") enabled or adjust CONFIG_MODULE_COMPRESS_* kernel option!"
-	fi
-
 	local -a required_kernel_options
 	[ -f "${KCONFIG_MODIFIED_MARKER}" ] && rm "${KCONFIG_MODIFIED_MARKER}"
 

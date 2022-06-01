@@ -60,6 +60,7 @@ longusage() {
   echo "	--ramdisk-modules	Copy required modules to the initramfs"
   echo "	--no-ramdisk-modules	Don't copy any modules to the initramfs"
   echo "	--all-ramdisk-modules	Copy all kernel modules to the initramfs"
+  echo "	--no-all-ramdisk-modules	Don't copy all kernel modules to the initramfs"
   echo "	--module-rebuild	Automatically run 'emerge @module-rebuild' when"
   echo "				necessary (and possible)"
   echo "	--no-module-rebuild	Don't automatically run 'emerge @module-rebuild'"
@@ -236,6 +237,9 @@ longusage() {
   echo "	--initramfs-symlink-name=<...>"
   echo "				Set initramfs symlink name"
   echo "	--firmware		Enable copying of firmware into initramfs"
+  echo "	--no-firmware	Disable copying of firmware into initramfs"
+  echo "	--all-firmware	Enable copying of all firmware into initramfs"
+  echo "	--no-all-firmware	Disable copying of all firmware into initramfs"
   echo "	--firmware-dir=<dir>"
   echo "				Specify directory to copy firmware from (defaults"
   echo "				to /lib/firmware)"
@@ -852,6 +856,10 @@ parse_cmdline() {
 		--firmware|--no-firmware)
 			CMD_FIRMWARE=$(parse_optbool "$*")
 			print_info 3 "CMD_FIRMWARE: ${CMD_FIRMWARE}"
+			;;
+		--all-firmware|--no-all-firmware)
+			CMD_ALLFIRMWARE=$(parse_optbool "$*")
+			print_info 3 "CMD_FIRMWARE: ${CMD_ALLFIRMWARE}"
 			;;
 		--firmware-dir=*)
 			CMD_FIRMWARE_DIR="${*#*=}"

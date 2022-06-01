@@ -444,6 +444,7 @@ determine_real_args() {
 	set_config_with_override BOOL   VIRTIO                                CMD_VIRTIO                                "no"
 	set_config_with_override BOOL   MULTIPATH                             CMD_MULTIPATH                             "no"
 	set_config_with_override BOOL   FIRMWARE                              CMD_FIRMWARE                              "no"
+	set_config_with_override BOOL   ALLFIRMWARE                           CMD_ALLFIRMWARE                           "no"
 	set_config_with_override STRING FIRMWARE_DIR                          CMD_FIRMWARE_DIR                          "/lib/firmware"
 	set_config_with_override STRING FIRMWARE_FILES                        CMD_FIRMWARE_FILES
 	set_config_with_override BOOL   FIRMWARE_INSTALL                      CMD_FIRMWARE_INSTALL                      "no"

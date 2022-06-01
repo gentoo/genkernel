@@ -1706,15 +1706,42 @@ append_firmware() {
 
 	mkdir -p "${TDIR}"/lib/firmware || gen_die "Failed to create '${TDIR}/lib/firmware'!"
 
-	if [ ${#FIRMWARE_FILES[@]} -gt 0 ]
+	local -a fwlist=()
+
+	if isTrue "${ALLFIRMWARE}"
 	then
-		pushd "${FIRMWARE_DIR}" &>/dev/null || gen_die "Failed to chdir to '${FIRMWARE_DIR}'!"
-		cp -rL --parents --target-directory="${TDIR}/lib/firmware" "${FIRMWARE_FILES[@]}" 2>/dev/null \
-			|| gen_die "Failed to copy firmware files (${FIRMWARE_FILES}) to '${TDIR}/lib/firmware'!"
-		popd &>/dev/null || gen_die "Failed to chdir!"
-	else
 		cp -a "${FIRMWARE_DIR}"/* "${TDIR}"/lib/firmware/ 2>/dev/null \
 			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
+	elif [ ${#FIRMWARE_FILES[@]} -gt 0 ]
+	then
+		fwlist=( "${FIRMWARE_FILES[@]}" )
+	else
+		local myfw=
+		while IFS= read -r -u 3 myfw
+		do
+			if [ -z "${myfw}" ]
+			then
+				gen_die "modinfo error!"
+			fi
+
+			if [ ! -f "${FIRMWARE_DIR}/${myfw}" ]
+			then
+				print_warning 3 "$(get_indent 3) - ${myfw} is missing; Ignoring ..."
+				continue
+			fi
+
+			fwlist+=( "${myfw}" )
+		done 3< <( (
+			modinfo -b "${KERNEL_MODULES_PREFIX%/}" -k "${KV}" -F firmware $(mod_dep_list) 2>/dev/null || echo
+		) | sort | uniq )
+	fi
+
+	if [ ${#fwlist[@]} -gt 0 ]
+	then
+		pushd "${FIRMWARE_DIR}" &>/dev/null || gen_die "Failed to chdir to '${FIRMWARE_DIR}'!"
+		cp -rL --parents --target-directory="${TDIR}/lib/firmware" "${fwlist[@]}" 2>/dev/null \
+			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
+		popd &>/dev/null || gen_die "Failed to chdir!"
 	fi
 
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
@@ -1808,34 +1835,42 @@ append_modules() {
 		gen_die "${error_message}"
 	fi
 
-	determine_KEXT
-
 	cd "${modules_srcdir}" || gen_die "Failed to chdir to '${modules_srcdir}'!"
 
-	print_info 2 "$(get_indent 2)modules: >> Copying modules from '${modules_srcdir}' to initramfs ..."
+	print_info 2 "$(get_indent 2)modules: >> Searching modules in '${modules_srcdir}' ..."
 
-	local i= mymod=
-	local n_copied_modules=0
-	for i in $(gen_dep_list)
+	local mymod=
+	local -a modlist=()
+	while IFS= read -r -u 3 mymod
 	do
-		mymod=$(find . -name "${i}${KEXT}" 2>/dev/null | head -n 1)
 		if [ -z "${mymod}" ]
 		then
-			print_warning 3 "$(get_indent 3) - ${i}${KEXT} not found; Skipping ..."
-			continue;
+			gen_die "modinfo error!"
 		fi
 
-		print_info 3 "$(get_indent 3) - Copying ${i}${KEXT} ..."
-		cp -ax --parents --target-directory "${modules_dstdir}" "${mymod}" 2>/dev/null \
-			|| gen_die "Failed to copy '${modules_srcdir}/${mymod}' to '${modules_dstdir}'!"
-		n_copied_modules=$[$n_copied_modules+1]
-	done
+		if [ "${mymod}" = '(builtin)' ]
+		then
+			continue
+		fi
 
-	if [ ${n_copied_modules} -eq 0 ]
+		if [ ! -f "${mymod}" ]
+		then
+			gen_die "Module '${i}${KEXT}' is missing!"
+		fi
+
+		modlist+=( "${mymod/#${modules_srcdir}\//}" )
+	done 3< <( (
+		modinfo -b "${KERNEL_MODULES_PREFIX%/}" -k "${KV}" -F filename $(mod_dep_list) 2>/dev/null || echo
+	) | sort | uniq )
+
+	if [ ${#modlist[@]} -gt 0 ]
 	then
-		print_warning 1 "$(get_indent 2)modules: ${n_copied_modules} modules copied. Is that correct?"
+		print_info 2 "$(get_indent 2)modules: >> Copying modules from '${modules_srcdir}' to initramfs ..."
+		cp -ax --parents --target-directory "${modules_dstdir}" "${modlist[@]}" 2>/dev/null \
+			|| gen_die "Failed to copy modules!"
+		print_info 2 "$(get_indent 2)modules: ${#modlist[@]} modules copied!"
 	else
-		print_info 2 "$(get_indent 2)modules: ${n_copied_modules} modules copied!"
+		print_warning 1 "$(get_indent 2)modules: 0 modules copied. Is that correct?"
 	fi
 
 	cp -ax --parents --target-directory "${modules_dstdir}" modules* 2>/dev/null \
@@ -2051,16 +2086,6 @@ append_data() {
 
 create_initramfs() {
 	print_info 1 "initramfs: >> Initializing ..."
-
-	if ! isTrue "${BUILD_KERNEL}"
-	then
-		# Check early for suitable kmod
-		determine_KEXT
-		if ! isTrue "$(is_kext_supported_by_kmod "${KEXT}")"
-		then
-			gen_die "${KMOD_CMD} does not support chosen module compression algorithm. Please re-emerge sys-apps/kmod with USE=$(get_kext_kmod_use_flag "${KEXT}") enabled or adjust CONFIG_MODULE_COMPRESS_* kernel option!"
-		fi
-	fi
 
 	# Create empty cpio
 	CPIO_ARCHIVE="${TMPDIR}/${GK_FILENAME_TEMP_INITRAMFS}"

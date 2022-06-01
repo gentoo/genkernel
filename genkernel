@@ -352,6 +352,16 @@ if isTrue "${BUILD_RAMDISK}"
 then
 	print_info 1 '' 1 0
 
+	if isTrue "${FIRMWARE}" || isTrue "${RAMDISKMODULES}"
+	then
+		# Check for suitable kmod
+		determine_KEXT
+		if ! isTrue "$(is_kext_supported_by_kmod "${KEXT}")"
+		then
+			gen_die "${KMOD_CMD} does not support chosen module compression algorithm. Please re-emerge sys-apps/kmod with USE=$(get_kext_kmod_use_flag "${KEXT}") enabled or adjust CONFIG_MODULE_COMPRESS_* kernel option!"
+		fi
+	fi
+
 	# Compile initramfs
 	create_initramfs
 else
