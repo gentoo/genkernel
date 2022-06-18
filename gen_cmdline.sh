@@ -174,6 +174,9 @@ longusage() {
   echo "	--bootloader=(grub|grub2)"
   echo "				Add new kernel to GRUB (grub) or GRUB2 (grub2) bootloader"
   echo "	--no-bootloader		Skip bootloader update"
+  echo "	--bootconfig=(<file>|none)"
+  echo "				Append a kernel bootconfig data to initramfs"
+  echo "	--no-bootconfig		No append the kernel bootconfig to initramfs"
   echo "	--linuxrc=<file>	Specifies a user created linuxrc"
   echo "	--busybox-config=<file>	Specifies a user created busybox config"
   echo "	--genzimage		Make and install kernelz image (PowerPC)"
@@ -539,6 +542,16 @@ parse_cmdline() {
 		--no-bootloader)
 			CMD_BOOTLOADER="no"
 			print_info 3 "CMD_BOOTLOADER: ${CMD_BOOTLOADER}"
+			;;
+		--bootconfig=*)
+			CMD_BOOTCONFIG="yes"
+			BOOTCONFIG_FILE="${*#*=}"
+			[ -z "${BOOTCONFIG_FILE}" ] && CMD_BOOTCONFIG="no"
+			print_info 3 "CMD_BOOTCONFIG: ${BOOTCONFIG_FILE}"
+			;;
+		--no-bootconfig)
+			CMD_BOOTCONFIG="no"
+			print_info 3 "CMD_BOOTCONFIG=${CMD_BOOTCONFIG}"
 			;;
 		--iscsi|--no-iscsi)
 			CMD_ISCSI=$(parse_optbool "$*")
