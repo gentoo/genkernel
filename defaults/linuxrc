@@ -55,6 +55,7 @@ run busybox --install -s
 CMDLINE=$(cat /proc/cmdline 2>/dev/null)
 for x in ${CMDLINE}
 do
+	x=${x//\"/}
 	case "${x}" in
 		real_root=*)
 			REAL_ROOT=${x#*=}
