@@ -26,6 +26,9 @@ determine_kernel_arch() {
 		riscv|riscv64*)
 			KERNEL_ARCH=riscv
 			;;
+		s390*)
+			KERNEL_ARCH=s390
+			;;
 		x86)
 			if [ "${VER}" -ge "3" ]
 			then
