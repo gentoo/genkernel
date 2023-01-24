@@ -85,6 +85,10 @@ do
 		cdroot_marker=*)
 			CDROOT_MARKER=${x#*=}
 		;;
+		httpboot=*)
+			HTTPBOOT=1
+			HTTPBOOT_URL=${x#*=}
+		;;
 		# Start livecd loop, looptype options
 		loop=*)
 			LOOP=${x#*=}
@@ -731,6 +735,15 @@ if [ "${CDROOT}" = '1' ]
 then
 	# Setup the root filesystem
 	bootstrapFS
+
+	if [ "${HTTPBOOT}" = '1' ]; then
+		[ ! -d "${ISO_TEMP}" ] && mkdir -p "${ISO_TEMP}"
+		good_msg "Fetching ISO from ${HTTPBOOT_URL}"
+		run wget "${HTTPBOOT_URL}" -O "${ISO_PATH}${ISO_NAME}" -q && good_msg "Written to ${ISO_PATH}${ISO_NAME}"
+		good_msg "Mounting ${ISO_PATH}${ISO_NAME} in ${CDROOT_PATH}"
+		run mount -o ro,loop "${ISO_PATH}${ISO_NAME}" "${CDROOT_PATH}" && good_msg "Mounted ${ISO_PATH}${ISO_NAME} in ${CDROOT_PATH}"
+		got_good_root=1
+	fi
 
 	if [ "${aufs}" = '1' ]
 	then
