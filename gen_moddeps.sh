@@ -10,6 +10,17 @@ mod_dep_list() {
 	cat "${TEMP}/moddeps"
 }
 
+xbasename() {
+	local -a moddeplist=( $( </dev/stdin ) )
+
+	if (( ${#moddeplist[@]} > 0 ))
+	then
+		# prepend slash to each moddeplist element
+		# to avoid passing elements as basename options
+		basename -s "${KEXT}" "${moddeplist[@]/#/\/}"
+	fi
+}
+
 gen_dep_list() {
 	local moddir="${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}"
 
@@ -60,5 +71,5 @@ gen_dep_list() {
 		)
 
 		printf '%s\n' "${moddeplist[@]}"
-	fi | xargs basename -s "${KEXT}" | sort | uniq
+	fi | xbasename | sort | uniq
 }
