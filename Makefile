@@ -103,6 +103,7 @@ verify-shellscripts-initramfs:
 
 out:
 	mkdir out
+	mkdir out/share
 
 src: out
 
@@ -131,6 +132,44 @@ src: out
 
 	cp genkernel out/
 
+	cat defaults/software.sh | sed \
+		-e "s:VERSION_BCACHE_TOOLS:${VERSION_BCACHE_TOOLS}:"\
+		-e "s:VERSION_BOOST:${VERSION_BOOST}:"\
+		-e "s:VERSION_BTRFS_PROGS:${VERSION_BTRFS_PROGS}:"\
+		-e "s:VERSION_BUSYBOX:${VERSION_BUSYBOX}:"\
+		-e "s:VERSION_COREUTILS:${VERSION_COREUTILS}:"\
+		-e "s:VERSION_CRYPTSETUP:${VERSION_CRYPTSETUP}:"\
+		-e "s:VERSION_DMRAID:${VERSION_DMRAID}:"\
+		-e "s:VERSION_DROPBEAR:${VERSION_DROPBEAR}:"\
+		-e "s:VERSION_EUDEV:${VERSION_EUDEV}:"\
+		-e "s:VERSION_EXPAT:${VERSION_EXPAT}:"\
+		-e "s:VERSION_E2FSPROGS:${VERSION_E2FSPROGS}:"\
+		-e "s:VERSION_FUSE:${VERSION_FUSE}:"\
+		-e "s:VERSION_GPG:${VERSION_GPG}:"\
+		-e "s:VERSION_HWIDS:${VERSION_HWIDS}:"\
+		-e "s:VERSION_ISCSI:${VERSION_ISCSI}:"\
+		-e "s:VERSION_JSON_C:${VERSION_JSON_C}:"\
+		-e "s:VERSION_KMOD:${VERSION_KMOD}:"\
+		-e "s:VERSION_LIBAIO:${VERSION_LIBAIO}:"\
+		-e "s:VERSION_LIBGCRYPT:${VERSION_LIBGCRYPT}:"\
+		-e "s:VERSION_LIBGPGERROR:${VERSION_LIBGPGERROR}:"\
+		-e "s:VERSION_LIBXCRYPT:${VERSION_LIBXCRYPT}:"\
+		-e "s:VERSION_LVM:${VERSION_LVM}:"\
+		-e "s:VERSION_LZO:${VERSION_LZO}:"\
+		-e "s:VERSION_MDADM:${VERSION_MDADM}:"\
+		-e "s:VERSION_MULTIPATH_TOOLS:${VERSION_MULTIPATH_TOOLS}:"\
+		-e "s:VERSION_POPT:${VERSION_POPT}:"\
+		-e "s:VERSION_STRACE:${VERSION_STRACE}:"\
+		-e "s:VERSION_THIN_PROVISIONING_TOOLS:${VERSION_THIN_PROVISIONING_TOOLS}:"\
+		-e "s:VERSION_UNIONFS_FUSE:${VERSION_UNIONFS_FUSE}:"\
+		-e "s:VERSION_USERSPACE_RCU:${VERSION_USERSPACE_RCU}:"\
+		-e "s:VERSION_UTIL_LINUX:${VERSION_UTIL_LINUX}:"\
+		-e "s:VERSION_XFSPROGS:${VERSION_XFSPROGS}:"\
+		-e "s:VERSION_XZ:${VERSION_XZ}:"\
+		-e "s:VERSION_ZLIB:${VERSION_ZLIB}:"\
+		-e "s:VERSION_ZSTD:${VERSION_ZSTD}:"\
+		> out/software.sh
+
 
 install: default src
 
@@ -141,6 +180,13 @@ install: default src
 	install -m 755 out/genkernel $(DESTDIR)/$(BINDIR)/
 
 	install -d $(DESTDIR)/$(PREFIX)/share/genkernel
+
+	cp -rp arch $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp defaults $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
+
 	install -m 755 out/gen_arch.sh $(DESTDIR)/$(PREFIX)/share/genkernel
 	install -m 755 out/gen_bootloader.sh $(DESTDIR)/$(PREFIX)/share/genkernel
 	install -m 755 out/gen_cmdline.sh $(DESTDIR)/$(PREFIX)/share/genkernel
@@ -152,13 +198,7 @@ install: default src
 	install -m 755 out/gen_moddeps.sh $(DESTDIR)/$(PREFIX)/share/genkernel
 	install -m 755 out/gen_package.sh $(DESTDIR)/$(PREFIX)/share/genkernel
 
-	install -m 644 initramfs.mounts $(DESTDIR)/$(SYSCONFDIR)/
+	install out/software.sh $(DESTDIR)/$(PREFIX)/share/genkernel/defaults
 
-	cp -rp arch $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp defaults $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
-
-	install -d $(DESTDIR)/var/lib/genkernel/src
-	install -m 644 tarballs/* $(DESTDIR)/var/lib/genkernel/src/
+	# install -d $(DESTDIR)/var/lib/genkernel/src
+	# install -m 644 tarballs/* $(DESTDIR)/var/lib/genkernel/src/
