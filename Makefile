@@ -26,6 +26,7 @@ ChangeLog:
 
 clean:
 	rm -f $(EXTRA_DIST)
+	rm -r out
 
 check-git-repository:
 ifneq ($(UNCLEAN),1)
@@ -56,9 +57,9 @@ distclean: clean
 		perl merge.pl $< $(BASE_KCONF) | sort > $@ ; \
 	fi ;
 
-%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel
+%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel out
 	a2x --conf-file=doc/asciidoc.conf --attribute="genkernelversion=$(PACKAGE_VERSION)" \
-		 --format=manpage -D . "$<"
+		 --format=manpage -D out "$<"
 
 verify-doc: doc/genkernel.8.txt
 	@rm -f faildoc ; \
@@ -99,3 +100,65 @@ verify-shellscripts-initramfs:
 		--severity error \
 		defaults/linuxrc \
 		defaults/initrd.scripts
+
+out:
+	mkdir out
+
+src: out
+
+	cp genkernel.conf out/
+
+	cat gen_cmdline.sh | sed \
+		-e '/#BEGIN FEATURES parse_cmdline()/ r temp/parse_cmdline' \
+		-e '/#BEGIN FEATURES longusage()/ r temp/longusage' \
+		> out/gen_cmdline.sh
+	cat gen_initramfs.sh | sed \
+		-e '/#BEGIN FEATURES append_base_layout()/ r temp/append_base_layout' \
+		-e '/#BEGIN FEATURES create_initramfs()/ r temp/create_initramfs' \
+		-e '/#BEGIN FEATURES initramfs_append/ r temp/initramfs_append' \
+		> out/gen_initramfs.sh
+	cat gen_determineargs.sh | sed \
+		-e '/#BEGIN FEATURES determine_real_args()/ r temp/determine_real_args' \
+		> out/gen_determineargs.sh
+
+	cp gen_arch.sh out/
+	cp gen_bootloader.sh out/
+	cp gen_compile.sh out/
+	cp gen_configkernel.sh out/
+	cp gen_funcs.sh out/
+	cp gen_moddeps.sh out/
+	cp gen_package.sh out/
+
+	cp genkernel out/
+
+
+install: default src
+
+	install -d $(DESTDIR)/$(SYSCONFDIR)
+	install -m 644 out/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
+
+	install -d $(DESTDIR)/$(BINDIR)
+	install -m 755 out/genkernel $(DESTDIR)/$(BINDIR)/
+
+	install -d $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_arch.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_bootloader.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_cmdline.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_compile.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_configkernel.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_determineargs.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_funcs.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_initramfs.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_moddeps.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_package.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+
+	install -m 644 initramfs.mounts $(DESTDIR)/$(SYSCONFDIR)/
+
+	cp -rp arch $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp defaults $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
+
+	install -d $(DESTDIR)/var/lib/genkernel/src
+	install -m 644 tarballs/* $(DESTDIR)/var/lib/genkernel/src/
