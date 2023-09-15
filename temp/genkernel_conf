@@ -1,0 +1,78 @@
+# Add bcache support
+#BCACHE="no"
+
+# Add LVM support
+#LVM="no"
+
+# Add LUKS support
+#LUKS="no"
+
+# Add GnuPG support
+#GPG="no"
+
+# Add keyctl support for loading LUKS passphrase into a keyring
+#KEYCTL="no"
+
+# Add NFS support
+#NFS="no"
+
+# Add DMRAID support
+#DMRAID="no"
+
+# Add SSH support
+#SSH="no"
+
+# Add b2sum support
+#B2SUM="no"
+
+# Include busybox in the initramfs. If included, busybox is rebuilt
+# if the cached copy is out of date.
+#BUSYBOX="yes"
+
+# Add MDRAID support
+#MDADM="no"
+
+# Specify a custom mdadm.conf.
+# By default the initramfs will be built *without* an mdadm.conf and will auto-detect
+# arrays during bootup.  Usually, this should not be needed.
+#MDADM_CONFIG="/etc/mdadm.conf"
+
+# Add Multipath support
+#MULTIPATH="no"
+
+# Add iSCSI support
+#ISCSI="no"
+
+# Add e2fsprogs support
+#E2FSPROGS="no"
+
+# Include support for unionfs
+#UNIONFS="no"
+
+# Include support for zfs volume management.  If unset, genkernel will attempt
+# to autodetect and enable this when rootfs is on zfs.
+#ZFS="no"
+
+# Add BTRFS support
+#BTRFS="no"
+
+# Add xfsprogs support
+#XFSPROGS="no"
+
+# Add boot splash using splashutils
+#SPLASH="no"
+
+# Use this splash theme. If commented out - the "default" name theme is used.
+# Also, SPLASH="yes" needs to be enabled for this one to work.
+# This supersedes the "SPLASH_THEME" option in '/etc/conf.d/splash'.
+#SPLASH_THEME="gentoo"
+
+# Includes or excludes Plymouth from the initramfs. If "splash" is
+# passed at boot, Plymouth will be activated.
+#PLYMOUTH="no"
+
+# Embeds the given plymouth theme in the initramfs.
+#PLYMOUTH_THEME="text"
+
+# Create a self-contained env in the initramfs
+#NETBOOT="no"

@@ -103,11 +103,19 @@ verify-shellscripts-initramfs:
 
 out:
 	mkdir out
-	mkdir out/share
+	mkdir out/temp
 
-src: out
+features:
+	touch out/temp/parse_cmdline
+	for feature in ${GK_FEATURES} ; do
+		local feature_file="features/${feature}"
+	done
 
-	cp genkernel.conf out/
+src: out features
+
+	cat genkernel.conf | sed \
+		-e '/BEGIN FEATURES genkernel_conf/ r temp/genkernel_conf' \
+		> out/genkernel.conf
 
 	cat gen_cmdline.sh | sed \
 		-e '/#BEGIN FEATURES parse_cmdline()/ r temp/parse_cmdline' \
@@ -116,7 +124,7 @@ src: out
 	cat gen_initramfs.sh | sed \
 		-e '/#BEGIN FEATURES append_base_layout()/ r temp/append_base_layout' \
 		-e '/#BEGIN FEATURES create_initramfs()/ r temp/create_initramfs' \
-		-e '/#BEGIN FEATURES initramfs_append/ r temp/initramfs_append' \
+		-e '/#BEGIN FEATURES initramfs_append_func/ r temp/initramfs_append_func' \
 		> out/gen_initramfs.sh
 	cat gen_determineargs.sh | sed \
 		-e '/#BEGIN FEATURES determine_real_args()/ r temp/determine_real_args' \

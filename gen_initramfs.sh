@@ -502,8 +502,8 @@ append_base_layout() {
 	fi
 }
 
-#BEGIN FEATURES initramfs_append
-#END FEATURES initramfs_append
+#BEGIN FEATURES initramfs_append_func
+#END FEATURES initramfs_append_func
 
 append_libgcc_s() {
 	local TDIR="${TEMP}/initramfs-libgcc_s-temp"
