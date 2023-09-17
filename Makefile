@@ -57,9 +57,9 @@ distclean: clean
 		perl merge.pl $< $(BASE_KCONF) | sort > $@ ; \
 	fi ;
 
-%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel out
+%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel src out
 	a2x --conf-file=doc/asciidoc.conf --attribute="genkernelversion=$(PACKAGE_VERSION)" \
-		 --format=manpage -D out "$<"
+		 --format=manpage -D out "out/$<"
 
 verify-doc: doc/genkernel.8.txt
 	@rm -f faildoc ; \
@@ -104,6 +104,7 @@ verify-shellscripts-initramfs:
 out:
 	mkdir out
 	mkdir out/temp
+	mkdir out/doc
 
 features:
 	touch out/temp/parse_cmdline
@@ -114,8 +115,12 @@ features:
 src: out features
 
 	cat genkernel.conf | sed \
-		-e '/BEGIN FEATURES genkernel_conf/ r temp/genkernel_conf' \
+		-e '/#BEGIN FEATURES genkernel_conf/ r temp/genkernel_conf' \
 		> out/genkernel.conf
+	
+	cat doc/genkernel.8.txt | sed \
+		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r temp/man_genkernel_8' \
+		> out/doc/genkernel.8.txt
 
 	cat gen_cmdline.sh | sed \
 		-e '/#BEGIN FEATURES parse_cmdline()/ r temp/parse_cmdline' \
