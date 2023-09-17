@@ -1,0 +1,120 @@
+%begin append_base_layout
+	isTrue "${PLYMOUTH}" && build_parameters+=( --plymouth ) || build_parameters+=( --no-plymouth )
+%end append_base_layout
+
+-----
+
+%begin create_initramfs
+	append_data 'plymouth' "${PLYMOUTH}"
+%end create_initramfs
+
+-----
+
+%begin determine_real_args
+	set_config_with_override BOOL   PLYMOUTH                              CMD_PLYMOUTH                              "no"
+%end determine_real_args
+
+-----
+
+%begin genkernel_conf
+# Includes or excludes Plymouth from the initramfs. If "splash" is
+# passed at boot, Plymouth will be activated.
+#PLYMOUTH="no"
+
+# Embeds the given plymouth theme in the initramfs.
+#PLYMOUTH_THEME="text"
+%end genkernel_conf
+
+-----
+
+%begin initramfs_append_func
+append_plymouth() {
+	local PN=plymouth
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	# set plymouth theme
+	if [ -n "${PLYMOUTH_THEME}" ]
+	then
+		plymouth-set-default-theme ${PLYMOUTH_THEME} || gen_die "Failed to set default plymouth theme!"
+	fi
+	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
+	then
+		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default plymouth theme!"
+	fi
+	if [ -z "${PLYMOUTH_THEME}" ]
+	then
+		PLYMOUTH_THEME=text
+	fi
+
+	print_info 1 "$(get_indent 1)>> Installing plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
+
+	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
+		|| gen_die "Failed to build plymouth cpio archive!"
+
+	# can probably get rid of this; depends if plymouth was built with static libs
+	# rm -f "${TDIR}"/lib*/{ld*,libc*,libz*} \
+		# || gen_die "Failed to clean up plymouth cpio archive!"
+
+	ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" "${TDIR}/usr/share/plymouth/themes/default.plymouth" \
+		|| gen_die "Failed to set the default plymouth theme!"
+
+	# include required udev rules
+	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
+	cp -aL /lib/udev/rules.d/70-uaccess.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '70-uaccess.rules'!"
+	cp -aL /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
+
+	# clean up
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+%end initramfs_append_func
+
+-----
+
+%begin longusage
+  echo "	--plymouth		Enable Plymouth support"
+  echo "	--no-plymouth		Do not enable Plymouth support"
+  echo "	--plymouth-theme=<theme>    Embed the given Plymouth theme"
+%end longusage
+
+-----
+
+%begin man_genkernel_8
+*--*[*no-*]*plymouth*::
+    Includes or excludes Plymouth from the initramfs. If "splash" is
+    passed at boot, Plymouth will be activated.
+
+*--plymouth-theme*=<theme>::
+    Embeds the given Plymouth theme into the initramfs.
+%end man_genkernel_8
+
+-----
+
+%begin parse_cmdline
+		--plymouth)
+			CMD_PLYMOUTH="yes"
+			PLYMOUTH_THEME='text'
+			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
+			;;
+		--plymouth-theme=*)
+			CMD_PLYMOUTH="yes"
+			PLYMOUTH_THEME="${*#*=}"
+			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
+			print_info 3 "PLYMOUTH_THEME: ${PLYMOUTH_THEME}"
+			;;
+%end parse_cmdline

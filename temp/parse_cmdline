@@ -1,7 +1,4 @@
-		--bcache|--no-bcache)
-			CMD_BCACHE=$(parse_optbool "$*")
-			print_info 3 "CMD_BCACHE: ${CMD_BCACHE}"
-			;;
+
 		--lvm|--no-lvm)
 			CMD_LVM=$(parse_optbool "$*")
 			print_info 3 "CMD_LVM: ${CMD_LVM}"
@@ -20,11 +17,6 @@
 		--mdadm-config=*)
 			CMD_MDADM_CONFIG="${*#*=}"
 			print_info 3 "CMD_MDADM_CONFIG: ${CMD_MDADM_CONFIG}"
-			;;
-
-		--b2sum|--no-b2sum)
-			CMD_B2SUM=$(parse_optbool "$*")
-			print_info 3 "CMD_B2SUM: ${CMD_B2SUM}"
 			;;
 
 		--nfs|--no-nfs)
@@ -63,10 +55,6 @@
 			;;
 
 		# btrfs
-		--btrfs|--no-btrfs)
-			CMD_BTRFS=$(parse_optbool "$*")
-			print_info 3 "CMD_BTRFS: ${CMD_BTRFS}"
-			;;
 
 		# multipath
 		--multipath|--no-multipath)
@@ -81,23 +69,6 @@
 			;;
 
 		# ssh
-		--ssh|--no-ssh)
-			CMD_SSH=$(parse_optbool "$*")
-			print_info 3 "CMD_SSH: ${CMD_SSH}"
-			;;
-		--ssh-authorized-keys-file=*)
-			CMD_SSH_AUTHORIZED_KEYS_FILE="${*#*=}"
-			print_info 3 "CMD_SSH_AUTHORIZED_KEYS_FILE: ${CMD_SSH_AUTHORIZED_KEYS_FILE}"
-			;;
-		--ssh-host-keys=*)
-			CMD_SSH_HOST_KEYS="${*#*=}"
-			if ! isTrue "$(is_valid_ssh_host_keys_parameter_value "${CMD_SSH_HOST_KEYS}")"
-			then
-				echo "Error: --ssh-host-keys value '${CMD_SSH_HOST_KEYS}' is unsupported."
-				exit 1
-			fi
-			print_info 3 "CMD_SSH_HOST_KEYS: ${CMD_SSH_HOST_KEYS}"
-			;;
 
 		# strace
 		--strace|--no-strace)
@@ -106,55 +77,6 @@
 			;;
 
 		# splash
-		--gensplash=*)
-			CMD_SPLASH="yes"
-			SPLASH_THEME="${*#*=}"
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
-			echo
-			print_warning 1 "Please use --splash, as --gensplash is deprecated."
-			;;
-		--gensplash|--no-gensplash)
-			CMD_SPLASH=$(parse_optbool "$*")
-			SPLASH_THEME='default'
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			echo
-			print_warning 1 "Please use --splash, as --gensplash is deprecated."
-			;;
-		--splash=*)
-			CMD_SPLASH="yes"
-			SPLASH_THEME="${*#*=}"
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
-			;;
-		--splash|--no-splash)
-			CMD_SPLASH=$(parse_optbool "$*")
-			SPLASH_THEME='default'
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			;;
-		--gensplash-res=*)
-			SPLASH_RES="${*#*=}"
-			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
-			echo
-			print_warning 1 "Please use --splash-res, as --gensplash-res is deprecated."
-			;;
-		--splash-res=*)
-			SPLASH_RES="${*#*=}"
-			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
-			;;
-
-		# plymouth
-		--plymouth)
-			CMD_PLYMOUTH="yes"
-			PLYMOUTH_THEME='text'
-			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
-			;;
-		--plymouth-theme=*)
-			CMD_PLYMOUTH="yes"
-			PLYMOUTH_THEME="${*#*=}"
-			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
-			print_info 3 "PLYMOUTH_THEME: ${PLYMOUTH_THEME}"
-			;;
 
 		--virtio|--no-virtio)
 			CMD_VIRTIO=$(parse_optbool "$*")

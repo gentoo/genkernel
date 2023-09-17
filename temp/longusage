@@ -1,8 +1,4 @@
-  
-  # bcache
-  echo "	--bcache		Include block layer cache (bcache) support"
-  echo "	--no-bcache		Exclude block layer cache (bcache) support"
-  
+
   # lvm
   echo "	--lvm			Include LVM support"
   echo "	--no-lvm		Exclude LVM support"
@@ -32,10 +28,6 @@
   echo "	--zfs			Include ZFS support (enabled by default if rootfs is ZFS)"
   echo "	--no-zfs		Exclude ZFS support"
 
-  # btrfs
-  echo "	--btrfs			Include Btrfs support (enabled by default if rootfs is Btrfs)"
-  echo "	--no-btrfs		Exclude Btrfs support"
-
   # multipath
   echo "	--multipath		Include Multipath support"
   echo "	--no-multipath		Exclude Multipath support"
@@ -43,29 +35,6 @@
   # iscsi
   echo "	--iscsi			Include iSCSI support"
   echo "	--no-iscsi		Exclude iSCSI support"
-
-  # ssh
-  echo "	--ssh			Include SSH (dropbear) support"
-  echo "	--no-ssh		Exclude SSH (dropbear) support"
-  echo "	--ssh-authorized-keys-file=<file>"
-  echo "				Specifies a user created authorized_keys file"
-  echo "	--ssh-host-keys=(create|create-from-host|runtime)"
-  echo "				Use host keys from /etc/dropbear, but CREATE (default) new host key(s)"
-  echo "				if missing, CREATE host key(s) FROM current HOST running genkernel"
-  echo "				(not recommended) or don't embed any host key in initramfs and"
-  echo "				generate at RUNTIME (dropbear -R)"
-
-  # luks
-  echo "	--luks			Include LUKS support"
-  echo "	--no-luks		Exclude LUKS support"
-  echo "	--gpg			Include GPG-armored LUKS key support"
-  echo "	--no-gpg		Exclude GPG-armored LUKS key support"
-  echo "	--keyctl		Include keyctl support for loading LUKS passphrase into a keyring"
-  echo "	--no-keyctl		Exclude keyctl support for loading LUKS passphrase into a keyring"
-
-  # b2sum
-  echo "	--b2sum			Include b2sum"
-  echo "	--no-b2sum		Exclude b2sum"
 
   # unionfs
   echo "	--unionfs		Include support for unionfs"
@@ -75,11 +44,3 @@
   echo "	--netboot		Create a self-contained env in the initramfs"
   echo "	--no-netboot		Exclude netboot env"
 
-  # splash
-  echo "	--splash=<theme>	Enable framebuffer splash using <theme>"
-  echo "	--splash-res=<res>	Select splash theme resolutions to install"
-
-  # plymouth
-  echo "	--plymouth		Enable Plymouth support"
-  echo "	--no-plymouth		Do not enable Plymouth support"
-  echo "	--plymouth-theme=<theme>    Embed the given Plymouth theme"

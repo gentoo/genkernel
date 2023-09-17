@@ -1,29 +1,4 @@
 
-*--*[*no-*]*splash*::
-    Installs, or not, framebuffer splash support into initramfs.
-
-*--*[*no-*]*splash*=<theme>::
-    If the extra argument is specified,  splash is forced using
-    <theme>  rather than the default theme specified in your splash
-    configuration. If *--no-splash* is specified, then splash is disabled.
-
-*--splash*=<theme>::
-    Enable framebuffer splash using <theme>.
-
-*--splash-res*=<resolutions>::
-    Select gensplash resolutions to include.
-
-*--*[*no-*]*plymouth*::
-    Includes or excludes Plymouth from the initramfs. If "splash" is
-    passed at boot, Plymouth will be activated.
-
-*--plymouth-theme*=<theme>::
-    Embeds the given Plymouth theme into the initramfs.
-
-*--*[*no-*]*bcache*::
-    Includes or excludes block layer cache (bcache) support.
-    When enabled, this will compile bcache-tools for you.
-
 *--*[*no-*]*lvm*::
     Includes or excludes LVM support.
     When enabled, this will compile LVM for you.
@@ -55,10 +30,6 @@
 *--*[*no-*]*zfs*::
     Includes or excludes ZFS support.
 
-*--*[*no-*]*btrfs*::
-    Includes or excludes Btrfs support.
-    When enabled, this will compile btrfs-progs for you.
-
 *--*[*no-*]*multipath*::
     Includes or excludes Multipath support.
     When enabled, this will compile multipath-tools for you.
@@ -66,43 +37,6 @@
 *--*[*no-*]*iscsi*::
     Includes or excludes iSCSI support.
     When enabled, this will compile open-iscsi for you.
-
-*--*[*no-*]*ssh*::
-    Includes or excludes SSH (dropbear) support for remote LUKS keys.
-    When enabled, this will compile dropbear for you.
-
-*--ssh-authorized-keys-file*=<file>::
-    Specifies a user created authorized_keys file. By default genkernel
-    will use '/etc/dropbear/authorized_keys'.
-
-*--ssh-host-keys*=<create|create-from-host|runtime>::
-    When set to *create*, which is the default value, genkernel will embed
-    SSH host keys from '/etc/dropbear' and will create those keys when missing.
-    When set to *create-from-host*, genkernel will embed SSH host keys from
-    '/etc/dropbear' but will create those keys from '/etc/ssh' when missing
-    (not recommended for security reasons).
-    When set to *runtime*, genkernel will not embed any SSH host key in
-    initramfs and dropbear will generate needed host key at runtime (`dropbear -R`).
-
-*--*[*no-*]*luks*::
-    Includes or excludes LUKS support.
-    When enabled, this will compile cryptsetup for you.
-
-*--*[*no-*]*gpg*::
-    Includes or excludes support for GnuPG 1.x, the portable standalone branch
-    of GnuPG. A key can be made from
-    `gpg --symmetric -o /path/to/LUKS-key.gpg /path/to/LUKS-key` .
-    After that, re-point the *root_key* argument to the new .gpg file.
-
-*--*[*no-*]*keyctl*::
-    Includes or excludes support for keyutils keyctl.
-    This way a LUKS passphrase can be loaded into a keyring at boot time
-    to unlock multiple devices (root, swap, etc.) without retyping it for each
-    one.
-
-*--*[*no-*]*b2sum*::
-    Includes or excludes b2sum in the initramfs.
-    When enabled, this will compile coreutils' b2sum for you.
 
 *--*[*no-*]*unionfs*::
     Includes or excludes support for unionfs.

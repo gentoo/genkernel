@@ -667,18 +667,6 @@ parse_cmdline() {
 #			ENABLE_PEGASOS_HACKS="yes"
 #			print_info 3 "ENABLE_PEGASOS_HACKS: ${ENABLE_PEGASOS_HACKS}"
 			;;
-		--luks|--no-luks)
-			CMD_LUKS=$(parse_optbool "$*")
-			print_info 3 "CMD_LUKS: ${CMD_LUKS}"
-			;;
-		--gpg|--no-gpg)
-			CMD_GPG=$(parse_optbool "$*")
-			print_info 3 "CMD_GPG: ${CMD_GPG}"
-			;;
-		--keyctl|--no-keyctl)
-			CMD_KEYCTL=$(parse_optbool "$*")
-			print_info 3 "CMD_KEYCTL: ${CMD_KEYCTL}"
-			;;
 		--firmware|--no-firmware)
 			CMD_FIRMWARE=$(parse_optbool "$*")
 			print_info 3 "CMD_FIRMWARE: ${CMD_FIRMWARE}"

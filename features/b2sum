@@ -1,0 +1,77 @@
+%begin append_base_layout
+	isTrue "${B2SUM}" && build_parameters+=( --b2sum ) || build_parameters+=( --no-b2sum )
+%end append_base_layout
+
+-----
+
+%begin create_initramfs
+	append_data 'b2sum' "${B2SUM}"
+%end create_initramfs
+
+-----
+
+%begin determine_real_args
+	set_config_with_override BOOL   B2SUM                                 CMD_B2SUM                                 "no"
+%end determine_real_args
+
+-----
+
+%begin genkernel_conf
+# Add b2sum support
+#B2SUM="no"
+%end genkernel_conf
+
+-----
+
+%begin initramfs_append_func
+append_b2sum() {
+	local PN="coreutils"
+	local TDIR="${TEMP}/initramfs-b2sum-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append b2sum to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+%end initramfs_append_func
+
+-----
+
+%begin longusage
+  # b2sum
+  echo "	--b2sum			Include b2sum"
+  echo "	--no-b2sum		Exclude b2sum"
+%end longusage
+
+-----
+
+%begin man_genkernel_8
+*--*[*no-*]*b2sum*::
+    Includes or excludes b2sum in the initramfs.
+    When enabled, this will compile coreutils' b2sum for you.
+%end man_genkernel_8
+
+-----
+
+%begin parse_cmdline
+		--b2sum|--no-b2sum)
+			CMD_B2SUM=$(parse_optbool "$*")
+			print_info 3 "CMD_B2SUM: ${CMD_B2SUM}"
+			;;
+%end parse_cmdline

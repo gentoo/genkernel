@@ -1,0 +1,143 @@
+%begin append_base_layout
+	isTrue "${SSH}" && build_parameters+=( --ssh ) || build_parameters+=( --no-ssh )
+%end append_base_layout
+
+-----
+
+%begin create_initramfs
+	append_data 'splash' "${SPLASH}"
+%end create_initramfs
+
+-----
+
+%begin determine_real_args
+	set_config_with_override BOOL   SPLASH                                CMD_SPLASH                                "no"
+%end determine_real_args
+
+-----
+
+%begin genkernel_conf
+# Add boot splash using splashutils
+#SPLASH="no"
+
+# Use this splash theme. If commented out - the "default" name theme is used.
+# Also, SPLASH="yes" needs to be enabled for this one to work.
+# This supersedes the "SPLASH_THEME" option in '/etc/conf.d/splash'.
+#SPLASH_THEME="gentoo"
+%end genkernel_conf
+
+-----
+
+%begin initramfs_append_func
+append_splash() {
+	local TDIR="${TEMP}/initramfs-splash-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	if [ -z "${SPLASH_THEME}" -a -e /etc/conf.d/splash ]
+	then
+		source /etc/conf.d/splash &>/dev/null || gen_die "Failed to source '/etc/conf.d/splash'!"
+	fi
+
+	if [ -z "${SPLASH_THEME}" ]
+	then
+		SPLASH_THEME=default
+	fi
+
+	print_info 1 "$(get_indent 1)>> Installing splash [ using the ${SPLASH_THEME} theme ] ..."
+
+	local res_param=""
+	[ -n "${SPLASH_RES}" ] && res_param="-r ${SPLASH_RES}"
+	splash_geninitramfs -c "${TDIR}" ${res_param} ${SPLASH_THEME} \
+		|| gen_die "Failed to build splash cpio archive"
+
+	if [ -e "/usr/share/splashutils/initrd.splash" ]
+	then
+		mkdir -p "${TDIR}"/etc || gen_die "Failed to create '${TDIR}/etc'!"
+		cp -f /usr/share/splashutils/initrd.splash "${TDIR}"/etc/ 2>/dev/null \
+			gen_die "Failed to copy '/usr/share/splashutils/initrd.splash'!"
+	fi
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append splash to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+%end initramfs_append_func
+
+-----
+
+%begin longusage
+  echo "	--splash=<theme>	Enable framebuffer splash using <theme>"
+  echo "	--splash-res=<res>	Select splash theme resolutions to install"
+%end longusage
+
+-----
+
+%begin man_genkernel_8
+*--*[*no-*]*splash*::
+    Installs, or not, framebuffer splash support into initramfs.
+
+*--*[*no-*]*splash*=<theme>::
+    If the extra argument is specified,  splash is forced using
+    <theme>  rather than the default theme specified in your splash
+    configuration. If *--no-splash* is specified, then splash is disabled.
+
+*--splash*=<theme>::
+    Enable framebuffer splash using <theme>.
+
+*--splash-res*=<resolutions>::
+    Select gensplash resolutions to include.
+%end man_genkernel_8
+
+-----
+
+%begin parse_cmdline
+		--gensplash=*)
+			CMD_SPLASH="yes"
+			SPLASH_THEME="${*#*=}"
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
+			echo
+			print_warning 1 "Please use --splash, as --gensplash is deprecated."
+			;;
+		--gensplash|--no-gensplash)
+			CMD_SPLASH=$(parse_optbool "$*")
+			SPLASH_THEME='default'
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			echo
+			print_warning 1 "Please use --splash, as --gensplash is deprecated."
+			;;
+		--splash=*)
+			CMD_SPLASH="yes"
+			SPLASH_THEME="${*#*=}"
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
+			;;
+		--splash|--no-splash)
+			CMD_SPLASH=$(parse_optbool "$*")
+			SPLASH_THEME='default'
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			;;
+		--gensplash-res=*)
+			SPLASH_RES="${*#*=}"
+			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
+			echo
+			print_warning 1 "Please use --splash-res, as --gensplash-res is deprecated."
+			;;
+		--splash-res=*)
+			SPLASH_RES="${*#*=}"
+			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
+			;;
+%end parse_cmdline

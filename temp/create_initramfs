@@ -2,22 +2,13 @@
 	append_data 'devicemanager' "${DMRAID}" "${LVM}" "${LUKS}" "${MULTIPATH}"
 	append_data 'dmraid' "${DMRAID}"
 	append_data 'lvm' "${LVM}"
-	append_data 'luks' "${LUKS}"
-	append_data 'gpg' "${GPG}"
-	append_data 'keyutils' "${KEYCTL}"
 	append_data 'multipath' "${MULTIPATH}"
 
-	append_data 'b2sum' "${B2SUM}"
-	append_data 'dropbear' "${SSH}"
 
-	append_data 'bcache' "${BCACHE}"
 	append_data 'mdadm' "${MDADM}"
-	append_data 'splash' "${SPLASH}"
-	append_data 'plymouth' "${PLYMOUTH}"
 	append_data 'strace' "${STRACE}"
 
 	append_data 'iscsi' "${ISCSI}"
-	append_data 'btrfs' "${BTRFS}"
 	append_data 'e2fsprogs' "${E2FSPROGS}"
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"
