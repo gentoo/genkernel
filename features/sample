@@ -1,0 +1,23 @@
+%begin append_base_layout
+%end append_base_layout
+
+%begin create_initramfs
+%end create_initramfs
+
+%begin determine_real_args
+%end determine_real_args
+
+%begin genkernel_conf
+%end genkernel_conf
+
+%begin initramfs_append_func
+%end initramfs_append_func
+
+%begin longusage
+%end longusage
+
+%begin man_genkernel_8
+%end man_genkernel_8
+
+%begin parse_cmdline
+%end parse_cmdline
