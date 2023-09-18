@@ -106,11 +106,10 @@ out:
 	mkdir out/temp
 	mkdir out/doc
 
-features:
-	touch out/temp/parse_cmdline
-	for feature in ${GK_FEATURES} ; do
-		local feature_file="features/${feature}"
-	done
+features: out features/
+	rm -f out/temp/*
+	awk -f compile_features.awk $(foreach feature,${GK_FEATURES},features/$(feature))
+
 
 src: out features
 
