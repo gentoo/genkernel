@@ -114,24 +114,24 @@ features: out features/
 src: out features
 
 	cat genkernel.conf | sed \
-		-e '/#BEGIN FEATURES genkernel_conf/ r temp/genkernel_conf' \
+		-e '/#BEGIN FEATURES genkernel_conf/ r out/temp/genkernel_conf' \
 		> out/genkernel.conf
 	
 	cat doc/genkernel.8.txt | sed \
-		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r temp/man_genkernel_8' \
+		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r out/temp/man_genkernel_8' \
 		> out/doc/genkernel.8.txt
 
 	cat gen_cmdline.sh | sed \
-		-e '/#BEGIN FEATURES parse_cmdline()/ r temp/parse_cmdline' \
-		-e '/#BEGIN FEATURES longusage()/ r temp/longusage' \
+		-e '/#BEGIN FEATURES parse_cmdline()/ r out/temp/parse_cmdline' \
+		-e '/#BEGIN FEATURES longusage()/ r out/temp/longusage' \
 		> out/gen_cmdline.sh
 	cat gen_initramfs.sh | sed \
-		-e '/#BEGIN FEATURES append_base_layout()/ r temp/append_base_layout' \
-		-e '/#BEGIN FEATURES create_initramfs()/ r temp/create_initramfs' \
-		-e '/#BEGIN FEATURES initramfs_append_func/ r temp/initramfs_append_func' \
+		-e '/#BEGIN FEATURES append_base_layout()/ r out/temp/append_base_layout' \
+		-e '/#BEGIN FEATURES create_initramfs()/ r out/temp/create_initramfs' \
+		-e '/#BEGIN FEATURES initramfs_append_func/ r out/temp/initramfs_append_func' \
 		> out/gen_initramfs.sh
 	cat gen_determineargs.sh | sed \
-		-e '/#BEGIN FEATURES determine_real_args()/ r temp/determine_real_args' \
+		-e '/#BEGIN FEATURES determine_real_args()/ r out/temp/determine_real_args' \
 		> out/gen_determineargs.sh
 
 	cp gen_arch.sh out/
