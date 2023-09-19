@@ -107,8 +107,18 @@ out:
 	mkdir out/doc
 
 features: out features/
-	rm -f out/temp/*
+	truncate -s 0 out/temp/genkernel_conf
+	truncate -s 0 out/temp/man_genkernel_8
+	truncate -s 0 out/temp/parse_cmdline
+	truncate -s 0 out/temp/longusage
+	truncate -s 0 out/temp/append_base_layout
+	truncate -s 0 out/temp/create_initramfs
+	truncate -s 0 out/temp/initramfs_append_func
+	truncate -s 0 out/temp/determine_real_args
+
+ifdef GK_FEATURES
 	awk -f compile_features.awk $(foreach feature,${GK_FEATURES},features/$(feature))
+endif
 
 
 src: out features
