@@ -1,5 +1,5 @@
 %begin append_base_layout
-	isTrue "${SSH}" && build_parameters+=( --ssh ) || build_parameters+=( --no-ssh )
+	isTrue "${SPLASH}" && build_parameters+=( --splash ) || build_parameters+=( --no-splash )
 %end append_base_layout
 
 -----

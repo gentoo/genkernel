@@ -133,6 +133,10 @@ longusage() {
   echo "	--microcode-initramfs	Prepend early microcode to initramfs"
   echo "	--no-microcode-initramfs"
   echo "				Don't prepend early microcode to initramfs"
+  echo "	--nfs			Include NFS support"
+  echo "	--no-nfs		Exclude NFS support"
+  echo "	--netboot		Create a self-contained env in the initramfs"
+  echo "	--no-netboot		Exclude netboot env"
 #BEGIN FEATURES longusage()
 #END FEATURES longusage()
   echo "	--do-keymap-auto	Forces keymap selection at boot"
@@ -445,6 +449,22 @@ parse_cmdline() {
 			;;
 #BEGIN FEATURES parse_cmdline()
 #END FEATURES parse_cmdline()
+		--nfs|--no-nfs)
+			CMD_NFS=$(parse_optbool "$*")
+			print_info 3 "CMD_NFS: ${CMD_NFS}"
+			;;
+		--netboot|--no-netboot)
+			CMD_NETBOOT=$(parse_optbool "$*")
+			print_info 3 "CMD_NETBOOT: ${CMD_NETBOOT}"
+			;;
+		--virtio|--no-virtio)
+			CMD_VIRTIO=$(parse_optbool "$*")
+			print_info 3 "CMD_VIRTIO: ${CMD_VIRTIO}"
+			;;
+		--hyperv|--no-hyperv)
+			CMD_HYPERV=$(parse_optbool "$*")
+			print_info 3 "CMD_HYPERV: ${CMD_HYPERV}"
+			;;
 		--loglevel=*)
 			CMD_LOGLEVEL="${*#*=}"
 			LOGLEVEL="${CMD_LOGLEVEL}"

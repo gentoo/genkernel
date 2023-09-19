@@ -1083,6 +1083,36 @@ append_firmware() {
 	fi
 }
 
+append_util-linux() {
+	local PN="util-linux"
+	local TDIR="${TEMP}/initramfs-util-linux-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	# Delete unneeded files
+	rm -rf usr/
+
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
 append_overlay() {
 	cd "${INITRAMFS_OVERLAY}"  || gen_die "Failed to chdir to '${INITRAMFS_OVERLAY}'!"
 	log_future_cpio_content
@@ -1114,6 +1144,8 @@ create_initramfs() {
 	else
 		print_info 1 "$(get_indent 1)>> Not copying modules due to --no-ramdisk-modules ..."
 	fi
+
+	append_data 'devicemanager' "${DMRAID}" "${LVM}" "${LUKS}" "${MULTIPATH}"
 
 #BEGIN FEATURES create_initramfs()
 #END FEATURES create_initramfs()

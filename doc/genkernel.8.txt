@@ -349,6 +349,12 @@ INITIALIZATION
 *--*[*no-*]*keymap*::
     Enables or disables keymap selection at boot.
 
+*--*[*no-*]*nfs*::
+    Includes or excludes NFS support.
+
+*--*[*no-*]*netboot*::
+    Creates or does not create a self-contained env in the initramfs.
+
 // BEGIN FEATURES man_genkernel_8
 // END FEATURES man_genkernel_8
 

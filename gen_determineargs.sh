@@ -419,6 +419,10 @@ determine_real_args() {
 	set_config_with_override STRING BOOTLOADER                            CMD_BOOTLOADER                            "no"
 	set_config_with_override STRING BOOTFONT                              CMD_BOOTFONT                              "none"
 	set_config_with_override BOOL   SANDBOX                               CMD_SANDBOX                               "yes"
+	set_config_with_override BOOL   HYPERV                                CMD_HYPERV                                "no"
+	set_config_with_override BOOL   VIRTIO                                CMD_VIRTIO                                "no"
+	set_config_with_override BOOL   NETBOOT                               CMD_NETBOOT                               "no"
+	set_config_with_override BOOL   NFS                                   CMD_NFS                                   "yes"
 
 #BEGIN FEATURES determine_real_args()
 #END FEATURES determine_real_args()

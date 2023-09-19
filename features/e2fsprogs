@@ -1,0 +1,76 @@
+%begin append_base_layout
+	isTrue "${E2FSPROGS}" && build_parameters+=( --e2fsprogs ) || build_parameters+=( --no-e2fsprogs )
+%end append_base_layout
+
+-----
+
+%begin create_initramfs
+	append_data 'e2fsprogs' "${E2FSPROGS}"
+%end create_initramfs
+
+-----
+
+%begin determine_real_args
+	set_config_with_override BOOL   E2FSPROGS                             CMD_E2FSPROGS                             "no"
+%end determine_real_args
+
+-----
+
+%begin genkernel_conf
+# Add e2fsprogs support
+#E2FSPROGS="no"
+%end genkernel_conf
+
+-----
+
+%begin initramfs_append_func
+append_e2fsprogs() {
+	local PN=e2fsprogs
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+%end initramfs_append_func
+
+-----
+
+%begin longusage
+  echo "	--e2fsprogs		Include e2fsprogs"
+  echo "	--no-e2fsprogs		Exclude e2fsprogs"
+%end longusage
+
+-----
+
+%begin man_genkernel_8
+*--*[*no-*]*e2fsprogs*::
+    Includes or excludes e2fsprogs.
+    When enabled, this will compile e2fsprogs for you.
+%end man_genkernel_8
+
+-----
+
+%begin parse_cmdline
+		--e2fsprogs|--no-e2fsprogs)
+			CMD_E2FSPROGS=$(parse_optbool "$*")
+			print_info 3 "CMD_E2FSPROGS: ${CMD_E2FSPROGS}"
+			;;
+%end parse_cmdline
