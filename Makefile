@@ -212,5 +212,7 @@ install: default src
 
 	install out/software.sh $(DESTDIR)/$(PREFIX)/share/genkernel/defaults
 
+	install out/genkernel.8 $(MANDIR)/man8
+
 	# install -d $(DESTDIR)/var/lib/genkernel/src
 	# install -m 644 tarballs/* $(DESTDIR)/var/lib/genkernel/src/
