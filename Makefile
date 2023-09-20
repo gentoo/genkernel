@@ -107,14 +107,14 @@ out:
 	mkdir out/doc
 
 features: out features/
-	truncate -s 0 out/temp/genkernel_conf
-	truncate -s 0 out/temp/man_genkernel_8
-	truncate -s 0 out/temp/parse_cmdline
-	truncate -s 0 out/temp/longusage
-	truncate -s 0 out/temp/append_base_layout
-	truncate -s 0 out/temp/create_initramfs
-	truncate -s 0 out/temp/initramfs_append_func
-	truncate -s 0 out/temp/determine_real_args
+	echo > out/temp/genkernel_conf
+	echo > out/temp/man_genkernel_8
+	echo > out/temp/parse_cmdline
+	echo > out/temp/longusage
+	echo > out/temp/append_base_layout
+	echo > out/temp/create_initramfs
+	echo > out/temp/initramfs_append_func
+	echo > out/temp/determine_real_args
 
 ifdef GK_FEATURES
 	awk -f compile_features.awk $(foreach feature,${GK_FEATURES},features/$(feature))

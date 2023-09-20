@@ -23,5 +23,6 @@ BEGIN { FS="\n\n-----\n\n"; RS="\0" }
         filename="out/temp/"section_name
         for(j=2; j<L; ++j)
             print A[j] >> filename
+        print "" >> filename
     }
 }
