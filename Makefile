@@ -5,14 +5,24 @@ MANPAGE = genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
 EXTRA_DIST = $(MANPAGE) ChangeLog $(KCONF)
 
-default: kconfig man
-
 # First argument in the override file
 # Second argument is the base file
 BASE_KCONF = defaults/kernel-generic-config
 ARCH_KCONF = $(wildcard arch/*/arch-config)
 GENERATED_KCONF = $(subst arch-,generated-,$(ARCH_KCONF))
 KCONF = $(GENERATED_KCONF)
+
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+ifeq ($(PREFIX), /usr)
+	SYSCONFDIR = /etc
+else
+	SYSCONFDIR = $(PREFIX)/etc
+endif
+MANDIR = $(PREFIX)/share/man
+
+
+all: src man kconfig
 
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
@@ -26,7 +36,7 @@ ChangeLog:
 
 clean:
 	rm -f $(EXTRA_DIST)
-	rm -r out
+	rm -rf out
 
 check-git-repository:
 ifneq ($(UNCLEAN),1)
@@ -57,8 +67,8 @@ distclean: clean
 		perl merge.pl $< $(BASE_KCONF) | sort > $@ ; \
 	fi ;
 
-%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel src out
-	a2x --conf-file=doc/asciidoc.conf --attribute="genkernelversion=$(PACKAGE_VERSION)" \
+%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel gkfeatures out
+	a2x --conf-file=doc/asciidoc.conf \
 		 --format=manpage -D out "out/$<"
 
 verify-doc: doc/genkernel.8.txt
@@ -106,7 +116,7 @@ out:
 	mkdir out/temp
 	mkdir out/doc
 
-features: out features/
+gkfeatures: out features/
 	echo > out/temp/genkernel_conf
 	echo > out/temp/man_genkernel_8
 	echo > out/temp/parse_cmdline
@@ -121,7 +131,7 @@ ifdef GK_FEATURES
 endif
 
 
-src: out features
+src: out gkfeatures
 
 	cat genkernel.conf | sed \
 		-e '/#BEGIN FEATURES genkernel_conf/ r out/temp/genkernel_conf' \
@@ -151,7 +161,8 @@ src: out features
 	cp gen_funcs.sh out/
 	cp gen_moddeps.sh out/
 	cp gen_package.sh out/
-
+	cp gen_worker.sh out/
+	cp path_expander.py out/
 	cp genkernel out/
 
 	cat defaults/software.sh | sed \
@@ -193,7 +204,7 @@ src: out features
 		> out/software.sh
 
 
-install: default src
+install: all
 
 	install -d $(DESTDIR)/$(SYSCONFDIR)
 	install -m 644 out/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
@@ -219,10 +230,13 @@ install: default src
 	install -m 755 out/gen_initramfs.sh $(DESTDIR)/$(PREFIX)/share/genkernel
 	install -m 755 out/gen_moddeps.sh $(DESTDIR)/$(PREFIX)/share/genkernel
 	install -m 755 out/gen_package.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/gen_worker.sh $(DESTDIR)/$(PREFIX)/share/genkernel
+	install -m 755 out/path_expander.py $(DESTDIR)/$(PREFIX)/share/genkernel
 
 	install out/software.sh $(DESTDIR)/$(PREFIX)/share/genkernel/defaults
 
-	install out/genkernel.8 $(MANDIR)/man8
+	install -d $(DESTDIR)/$(MANDIR)
+	install out/genkernel.8 $(DESTDIR)/$(MANDIR)/man8
 
 	# install -d $(DESTDIR)/var/lib/genkernel/src
 	# install -m 644 tarballs/* $(DESTDIR)/var/lib/genkernel/src/
