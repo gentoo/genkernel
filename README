@@ -14,8 +14,23 @@ things mentioned above.
 DEPENDENCIES:
   - GCC and binutils
   - GNU Bash
+  - GNU Awk
+  - GNU Make
   - PaX Utilities
   - Autoconf and Automake
+  - Asciidoc
+  - Dependencies of each feature included
+
+INSTALLATION:
+  Build with ``make PREFIX=<prefix> GK_FEATURES=<features>''
+  <features> is a space-separated containing files in features/ directory,
+  e.g. GK_FEATURES="luks, lvm, plymouth".
+  Optionally:
+  - BINDIR: defaults to "$PREFIX/bin"
+  - SYSCONFDIR: defaults to "/etc" for PREFIX=/usr or "$PREFIX/etc" otherwise
+  - MANDIR: defaults to "$PREFIX/share/man"
+
+  Then install with ``make install'', optionally with DESTDIR
 
 USAGE:
   See https://wiki.gentoo.org/wiki/Genkernel or

@@ -1,7 +1,7 @@
 #PACKAGE_VERSION = $(shell /bin/grep -F -- GK_V= genkernel | sed "s/.*GK_V='\([^']\+\)'/\1/")
 PACKAGE_VERSION = $(shell git describe --tags |sed 's,^v,,g')
 distdir = genkernel-$(PACKAGE_VERSION)
-MANPAGE = genkernel.8
+MANPAGE := genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
 EXTRA_DIST = $(MANPAGE) ChangeLog $(KCONF)
 
@@ -22,14 +22,14 @@ endif
 MANDIR = $(PREFIX)/share/man
 
 
-all: src man kconfig
+all: out/genkernel man kconfig
 
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
 	@echo "GENERATED_KCONF=$(GENERATED_KCONF)"
 
 kconfig: $(GENERATED_KCONF)
-man: $(MANPAGE)
+man: $(foreach file, $(MANPAGE), out/$(file))
 
 ChangeLog:
 	git log >$@
@@ -67,7 +67,7 @@ distclean: clean
 		perl merge.pl $< $(BASE_KCONF) | sort > $@ ; \
 	fi ;
 
-%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel gkfeatures out
+out/%.8: doc/%.8.txt doc/asciidoc.conf Makefile out/doc/genkernel.8.txt
 	a2x --conf-file=doc/asciidoc.conf \
 		 --format=manpage -D out "out/$<"
 
@@ -111,60 +111,53 @@ verify-shellscripts-initramfs:
 		defaults/linuxrc \
 		defaults/initrd.scripts
 
-out:
-	mkdir out
-	mkdir out/temp
-	mkdir out/doc
+out/%/:
+	install -d $@
 
-gkfeatures: out features/
-	echo > out/temp/genkernel_conf
-	echo > out/temp/man_genkernel_8
-	echo > out/temp/parse_cmdline
-	echo > out/temp/longusage
-	echo > out/temp/append_base_layout
-	echo > out/temp/create_initramfs
-	echo > out/temp/initramfs_append_func
-	echo > out/temp/determine_real_args
+out/temp/%: out/temp/
+	echo > $@
 
+out/build-config: out/temp/genkernel_conf out/temp/man_genkernel_8 out/temp/parse_cmdline \
+out/temp/longusage out/temp/append_base_layout out/temp/create_initramfs \
+out/temp/initramfs_append_func out/temp/determine_real_args
 ifdef GK_FEATURES
 	awk -f compile_features.awk $(foreach feature,${GK_FEATURES},features/$(feature))
 endif
+	echo ${PREFIX} > out/PREFIX
+	echo ${BINDIR} > out/BINDIR
+	echo ${SYSCONFDIR} > out/SYSCONFDIR
+	echo ${MANDIR} > out/MANDIR
+	touch out/build-config
 
-
-src: out gkfeatures
-
+out/genkernel.conf: out/build-config
 	cat genkernel.conf | sed \
 		-e '/#BEGIN FEATURES genkernel_conf/ r out/temp/genkernel_conf' \
 		> out/genkernel.conf
-	
+
+out/doc/genkernel.8.txt: out/build-config out/doc/
 	cat doc/genkernel.8.txt | sed \
 		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r out/temp/man_genkernel_8' \
 		> out/doc/genkernel.8.txt
 
+out/gen_cmdline.sh: out/build-config
 	cat gen_cmdline.sh | sed \
 		-e '/#BEGIN FEATURES parse_cmdline()/ r out/temp/parse_cmdline' \
 		-e '/#BEGIN FEATURES longusage()/ r out/temp/longusage' \
 		> out/gen_cmdline.sh
+
+out/gen_initramfs.sh: out/build-config
 	cat gen_initramfs.sh | sed \
 		-e '/#BEGIN FEATURES append_base_layout()/ r out/temp/append_base_layout' \
 		-e '/#BEGIN FEATURES create_initramfs()/ r out/temp/create_initramfs' \
 		-e '/#BEGIN FEATURES initramfs_append_func/ r out/temp/initramfs_append_func' \
 		> out/gen_initramfs.sh
+
+out/gen_determineargs.sh: out/build-config
 	cat gen_determineargs.sh | sed \
 		-e '/#BEGIN FEATURES determine_real_args()/ r out/temp/determine_real_args' \
 		> out/gen_determineargs.sh
 
-	cp gen_arch.sh out/
-	cp gen_bootloader.sh out/
-	cp gen_compile.sh out/
-	cp gen_configkernel.sh out/
-	cp gen_funcs.sh out/
-	cp gen_moddeps.sh out/
-	cp gen_package.sh out/
-	cp gen_worker.sh out/
-	cp path_expander.py out/
-	cp genkernel out/
-
+out/software.sh:
 	cat defaults/software.sh | sed \
 		-e "s:VERSION_BCACHE_TOOLS:${VERSION_BCACHE_TOOLS}:"\
 		-e "s:VERSION_BOOST:${VERSION_BOOST}:"\
@@ -203,9 +196,26 @@ src: out gkfeatures
 		-e "s:VERSION_ZSTD:${VERSION_ZSTD}:"\
 		> out/software.sh
 
+out/genkernel: out/genkernel.conf out/gen_cmdline.sh \
+out/gen_initramfs.sh out/gen_determineargs.sh out/software.sh
 
+	cp gen_arch.sh out/gen_arch.sh
+	cp gen_bootloader.sh out/gen_bootloader.sh
+	cp gen_compile.sh out/gen_compile.sh
+	cp gen_configkernel.sh out/gen_configkernel.sh
+	cp gen_funcs.sh out/gen_funcs.sh
+	cp gen_moddeps.sh out/gen_moddeps.sh
+	cp gen_package.sh out/gen_package.sh
+	cp gen_worker.sh out/gen_worker.sh
+	cp path_expander.py out/path_expander.py
+	cp genkernel out/genkernel
+
+
+install: PREFIX := $(file <out/PREFIX)
+install: BINDIR := $(file <out/BINDIR)
+install: SYSCONFDIR := $(file <out/SYSCONFDIR)
+install: MANDIR := $(file <out/MANDIR)
 install: all
-
 	install -d $(DESTDIR)/$(SYSCONFDIR)
 	install -m 644 out/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
 
