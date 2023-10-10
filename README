@@ -14,7 +14,7 @@ things mentioned above.
 DEPENDENCIES:
   - GCC and binutils
   - GNU Bash
-  - GNU Awk
+  - Awk
   - GNU Make
   - PaX Utilities
   - Autoconf and Automake
