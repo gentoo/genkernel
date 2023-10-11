@@ -12,7 +12,7 @@ ARCH_KCONF = $(wildcard arch/*/arch-config)
 GENERATED_KCONF = $(subst arch-,generated-,$(ARCH_KCONF))
 KCONF = $(GENERATED_KCONF)
 
-GENERATED_DIR = out
+BUILD_DIR = build
 TEMPFILES = genkernel_conf \
 	man_genkernel_8 \
 	parse_cmdline \
@@ -22,7 +22,9 @@ TEMPFILES = genkernel_conf \
 	initramfs_append_func \
 	determine_real_args
 
-DEPS = genkernel.conf \
+INTERMEDIATE_DEPS = 
+
+FINAL_DEPS = genkernel.conf \
 	gen_cmdline.sh \
 	gen_initramfs.sh \
 	gen_determineargs.sh \
@@ -47,21 +49,21 @@ endif
 MANDIR = $(PREFIX)/share/man
 
 
-all: $(GENERATED_DIR)/genkernel man kconfig
+all: $(BUILD_DIR)/genkernel man kconfig
 
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
 	@echo "GENERATED_KCONF=$(GENERATED_KCONF)"
 
 kconfig: $(GENERATED_KCONF)
-man: $(addprefix $(GENERATED_DIR)/,$(MANPAGE))
+man: $(addprefix $(BUILD_DIR)/,$(MANPAGE))
 
 ChangeLog:
 	git log >$@
 
 clean:
 	rm -f $(EXTRA_DIST)
-	rm -rf $(GENERATED_DIR)
+	rm -rf $(BUILD_DIR)
 
 check-git-repository:
 ifneq ($(UNCLEAN),1)
@@ -92,9 +94,9 @@ distclean: clean
 		perl merge.pl $< $(BASE_KCONF) | sort > $@ ; \
 	fi ;
 
-$(GENERATED_DIR)/%.8: doc/%.8.txt doc/asciidoc.conf Makefile $(GENERATED_DIR)/doc/genkernel.8.txt
+$(BUILD_DIR)/%.8: doc/%.8.txt doc/asciidoc.conf Makefile $(BUILD_DIR)/doc/genkernel.8.txt
 	a2x --conf-file=doc/asciidoc.conf \
-		 --format=manpage -D $(GENERATED_DIR) "$(GENERATED_DIR)/$<"
+		 --format=manpage -D $(BUILD_DIR) "$(BUILD_DIR)/$<"
 
 verify-doc: doc/genkernel.8.txt
 	@rm -f faildoc ; \
@@ -136,54 +138,54 @@ verify-shellscripts-initramfs:
 		defaults/linuxrc \
 		defaults/initrd.scripts
 
-$(GENERATED_DIR)/:
+$(BUILD_DIR)/:
 	install -d $@
 
-$(GENERATED_DIR)/%/:
+$(BUILD_DIR)/%/:
 	install -d $@
 
-$(GENERATED_DIR)/temp/%: $(GENERATED_DIR)/temp/
+$(BUILD_DIR)/temp/%: $(BUILD_DIR)/temp/
 	echo > $@
 
-$(GENERATED_DIR)/build-config: $(addprefix $(GENERATED_DIR)/temp/,$(TEMPFILES))
+$(BUILD_DIR)/build-config: $(addprefix $(BUILD_DIR)/temp/,$(TEMPFILES))
 ifdef GK_FEATURES
-	awk -f compile_features.awk $(addprefix features/,${GK_FEATURES})
+	BUILD_DIR=$(BUILD_DIR) awk -f compile_features.awk $(addprefix features/,${GK_FEATURES})
 endif
-	echo ${PREFIX} > $(GENERATED_DIR)/PREFIX
-	echo ${BINDIR} > $(GENERATED_DIR)/BINDIR
-	echo ${SYSCONFDIR} > $(GENERATED_DIR)/SYSCONFDIR
-	echo ${MANDIR} > $(GENERATED_DIR)/MANDIR
-	touch $(GENERATED_DIR)/build-config
+	echo ${PREFIX} > $(BUILD_DIR)/PREFIX
+	echo ${BINDIR} > $(BUILD_DIR)/BINDIR
+	echo ${SYSCONFDIR} > $(BUILD_DIR)/SYSCONFDIR
+	echo ${MANDIR} > $(BUILD_DIR)/MANDIR
+	touch $(BUILD_DIR)/build-config
 
-$(GENERATED_DIR)/genkernel.conf: $(GENERATED_DIR)/build-config
+$(BUILD_DIR)/genkernel.conf: $(BUILD_DIR)/build-config
 	cat genkernel.conf | sed \
-		-e '/#BEGIN FEATURES genkernel_conf/ r $(GENERATED_DIR)/temp/genkernel_conf' \
-		> $(GENERATED_DIR)/genkernel.conf
+		-e '/#BEGIN FEATURES genkernel_conf/ r $(BUILD_DIR)/temp/genkernel_conf' \
+		> $(BUILD_DIR)/genkernel.conf
 
-$(GENERATED_DIR)/doc/genkernel.8.txt: $(GENERATED_DIR)/build-config $(GENERATED_DIR)/doc/
+$(BUILD_DIR)/doc/genkernel.8.txt: $(BUILD_DIR)/build-config $(BUILD_DIR)/doc/
 	cat doc/genkernel.8.txt | sed \
-		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r $(GENERATED_DIR)/temp/man_genkernel_8' \
-		> $(GENERATED_DIR)/doc/genkernel.8.txt
+		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r $(BUILD_DIR)/temp/man_genkernel_8' \
+		> $(BUILD_DIR)/doc/genkernel.8.txt
 
-$(GENERATED_DIR)/gen_cmdline.sh: $(GENERATED_DIR)/build-config
+$(BUILD_DIR)/gen_cmdline.sh: $(BUILD_DIR)/build-config
 	cat gen_cmdline.sh | sed \
-		-e '/#BEGIN FEATURES parse_cmdline()/ r $(GENERATED_DIR)/temp/parse_cmdline' \
-		-e '/#BEGIN FEATURES longusage()/ r $(GENERATED_DIR)/temp/longusage' \
-		> $(GENERATED_DIR)/gen_cmdline.sh
+		-e '/#BEGIN FEATURES parse_cmdline()/ r $(BUILD_DIR)/temp/parse_cmdline' \
+		-e '/#BEGIN FEATURES longusage()/ r $(BUILD_DIR)/temp/longusage' \
+		> $(BUILD_DIR)/gen_cmdline.sh
 
-$(GENERATED_DIR)/gen_initramfs.sh: $(GENERATED_DIR)/build-config
+$(BUILD_DIR)/gen_initramfs.sh: $(BUILD_DIR)/build-config
 	cat gen_initramfs.sh | sed \
-		-e '/#BEGIN FEATURES append_base_layout()/ r $(GENERATED_DIR)/temp/append_base_layout' \
-		-e '/#BEGIN FEATURES create_initramfs()/ r $(GENERATED_DIR)/temp/create_initramfs' \
-		-e '/#BEGIN FEATURES initramfs_append_func/ r $(GENERATED_DIR)/temp/initramfs_append_func' \
-		> $(GENERATED_DIR)/gen_initramfs.sh
+		-e '/#BEGIN FEATURES append_base_layout()/ r $(BUILD_DIR)/temp/append_base_layout' \
+		-e '/#BEGIN FEATURES create_initramfs()/ r $(BUILD_DIR)/temp/create_initramfs' \
+		-e '/#BEGIN FEATURES initramfs_append_func/ r $(BUILD_DIR)/temp/initramfs_append_func' \
+		> $(BUILD_DIR)/gen_initramfs.sh
 
-$(GENERATED_DIR)/gen_determineargs.sh: $(GENERATED_DIR)/build-config
+$(BUILD_DIR)/gen_determineargs.sh: $(BUILD_DIR)/build-config
 	cat gen_determineargs.sh | sed \
-		-e '/#BEGIN FEATURES determine_real_args()/ r $(GENERATED_DIR)/temp/determine_real_args' \
-		> $(GENERATED_DIR)/gen_determineargs.sh
+		-e '/#BEGIN FEATURES determine_real_args()/ r $(BUILD_DIR)/temp/determine_real_args' \
+		> $(BUILD_DIR)/gen_determineargs.sh
 
-$(GENERATED_DIR)/software.sh: $(GENERATED_DIR)/
+$(BUILD_DIR)/software.sh: $(BUILD_DIR)/
 	cat defaults/software.sh | sed \
 		-e "s:VERSION_BCACHE_TOOLS:${VERSION_BCACHE_TOOLS}:"\
 		-e "s:VERSION_BOOST:${VERSION_BOOST}:"\
@@ -220,24 +222,24 @@ $(GENERATED_DIR)/software.sh: $(GENERATED_DIR)/
 		-e "s:VERSION_XZ:${VERSION_XZ}:"\
 		-e "s:VERSION_ZLIB:${VERSION_ZLIB}:"\
 		-e "s:VERSION_ZSTD:${VERSION_ZSTD}:"\
-		> $(GENERATED_DIR)/software.sh
+		> $(BUILD_DIR)/software.sh
 
-$(GENERATED_DIR)/%: % $(GENERATED_DIR)/
+$(BUILD_DIR)/%: % $(BUILD_DIR)/
 	cp $< $@
 
-$(GENERATED_DIR)/genkernel: $(addprefix $(GENERATED_DIR)/,$(DEPS)) $(GENERATED_DIR)/software.sh
-	cp genkernel $(GENERATED_DIR)/genkernel
+$(BUILD_DIR)/genkernel: $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/software.sh
+	cp genkernel $(BUILD_DIR)/genkernel
 
-install: PREFIX := $(file <$(GENERATED_DIR)/PREFIX)
-install: BINDIR := $(file <$(GENERATED_DIR)/BINDIR)
-install: SYSCONFDIR := $(file <$(GENERATED_DIR)/SYSCONFDIR)
-install: MANDIR := $(file <$(GENERATED_DIR)/MANDIR)
+install: PREFIX := $(file <$(BUILD_DIR)/PREFIX)
+install: BINDIR := $(file <$(BUILD_DIR)/BINDIR)
+install: SYSCONFDIR := $(file <$(BUILD_DIR)/SYSCONFDIR)
+install: MANDIR := $(file <$(BUILD_DIR)/MANDIR)
 install: all
 	install -d $(DESTDIR)/$(SYSCONFDIR)
-	install -m 644 $(GENERATED_DIR)/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
+	install -m 644 $(BUILD_DIR)/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
 
 	install -d $(DESTDIR)/$(BINDIR)
-	install -m 755 $(GENERATED_DIR)/genkernel $(DESTDIR)/$(BINDIR)/
+	install -m 755 $(BUILD_DIR)/genkernel $(DESTDIR)/$(BINDIR)/
 
 	install -d $(DESTDIR)/$(PREFIX)/share/genkernel
 
@@ -247,12 +249,12 @@ install: all
 	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
 
-	install -m 755 -t $(DESTDIR)/$(PREFIX)/share/genkernel $(addprefix $(GENERATED_DIR)/,$(DEPS))
+	install -m 755 -t $(DESTDIR)/$(PREFIX)/share/genkernel $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS))
 	
-	install $(GENERATED_DIR)/software.sh $(DESTDIR)/$(PREFIX)/share/genkernel/defaults
+	install $(BUILD_DIR)/software.sh $(DESTDIR)/$(PREFIX)/share/genkernel/defaults
 
 	install -d $(DESTDIR)/$(MANDIR)
-	install $(GENERATED_DIR)/genkernel.8 $(DESTDIR)/$(MANDIR)/man8
+	install $(BUILD_DIR)/genkernel.8 $(DESTDIR)/$(MANDIR)/man8
 
 	# install -d $(DESTDIR)/var/lib/genkernel/src
 	# install -m 644 tarballs/* $(DESTDIR)/var/lib/genkernel/src/

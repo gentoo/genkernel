@@ -20,7 +20,7 @@ BEGIN { FS="\n\n-----\n\n"; RS="\0" }
             print "invalid section name in: "FILENAME
             exit 1
         }
-        filename="out/temp/"section_name
+        filename = ENVIRON["BUILD_DIR"] "/temp/"section_name
         for(j=2; j<L; ++j)
             print A[j] >> filename
         print "" >> filename

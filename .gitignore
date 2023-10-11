@@ -2,4 +2,4 @@
 /genkernel-*.tar.bz2
 /ChangeLog
 /arch/*/generated-config
-/out
+/build
