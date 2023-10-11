@@ -218,6 +218,7 @@ install: all
 	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp worker_modules $(DESTDIR)/$(PREFIX)/share/genkernel/
 
 	install -m 755 -t $(DESTDIR)/$(PREFIX)/share/genkernel $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS))
 	
