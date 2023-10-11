@@ -183,7 +183,7 @@ $(GENERATED_DIR)/gen_determineargs.sh: $(GENERATED_DIR)/build-config
 		-e '/#BEGIN FEATURES determine_real_args()/ r $(GENERATED_DIR)/temp/determine_real_args' \
 		> $(GENERATED_DIR)/gen_determineargs.sh
 
-$(GENERATED_DIR)/software.sh:
+$(GENERATED_DIR)/software.sh: $(GENERATED_DIR)/
 	cat defaults/software.sh | sed \
 		-e "s:VERSION_BCACHE_TOOLS:${VERSION_BCACHE_TOOLS}:"\
 		-e "s:VERSION_BOOST:${VERSION_BOOST}:"\
