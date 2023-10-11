@@ -215,6 +215,7 @@ install: all
 
 	cp -rp arch $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp defaults $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp gkbuilds $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
 	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
