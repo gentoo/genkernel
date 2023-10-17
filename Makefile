@@ -143,58 +143,63 @@ verify-shellscripts-initramfs:
 		defaults/linuxrc \
 		defaults/initrd.scripts
 
-$(BUILD_DIR)/:
-	install -d $@
+# $(BUILD_DIR)/:
+# 	install -d $@
+#
+# $(BUILD_DIR)/%/:
+# 	install -d $@
 
-$(BUILD_DIR)/%/:
-	install -d $@
-
-$(BUILD_DIR)/temp/%: $(BUILD_DIR)/temp/
+$(BUILD_DIR)/temp/%:
+	install -d $(@D)
 	echo > $@
+ifdef GK_FEATURES
+	cat $(addsuffix /$(@F) <(echo), $(addprefix features/,${GK_FEATURES})) > $@
+endif
 
 $(BUILD_DIR)/build-config: $(addprefix $(BUILD_DIR)/temp/,$(TEMPFILES))
-ifdef GK_FEATURES
-	BUILD_DIR=$(BUILD_DIR) awk -f compile_features.awk $(addprefix features/,${GK_FEATURES})
-endif
 	echo ${PREFIX} > $(BUILD_DIR)/PREFIX
 	echo ${BINDIR} > $(BUILD_DIR)/BINDIR
 	echo ${SYSCONFDIR} > $(BUILD_DIR)/SYSCONFDIR
 	echo ${MANDIR} > $(BUILD_DIR)/MANDIR
 	touch $(BUILD_DIR)/build-config
 
-$(BUILD_DIR)/genkernel.conf: $(BUILD_DIR)/build-config
+$(BUILD_DIR)/genkernel.conf: $(BUILD_DIR)/temp/genkernel_conf
 	cat genkernel.conf | sed \
 		-e '/#BEGIN FEATURES genkernel_conf/ r $(BUILD_DIR)/temp/genkernel_conf' \
 		> $(BUILD_DIR)/genkernel.conf
 
-$(BUILD_DIR)/doc/genkernel.8.txt: $(BUILD_DIR)/build-config $(BUILD_DIR)/doc/
+$(BUILD_DIR)/doc/genkernel.8.txt: $(BUILD_DIR)/temp/man_genkernel_8
+	install -d $(BUILD_DIR)/doc/
 	cat doc/genkernel.8.txt | sed \
 		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r $(BUILD_DIR)/temp/man_genkernel_8' \
 		> $(BUILD_DIR)/doc/genkernel.8.txt
 
-$(BUILD_DIR)/gen_cmdline.sh: $(BUILD_DIR)/build-config
+$(BUILD_DIR)/gen_cmdline.sh: $(BUILD_DIR)/temp/parse_cmdline $(BUILD_DIR)/temp/longusage
 	cat gen_cmdline.sh | sed \
 		-e '/#BEGIN FEATURES parse_cmdline()/ r $(BUILD_DIR)/temp/parse_cmdline' \
 		-e '/#BEGIN FEATURES longusage()/ r $(BUILD_DIR)/temp/longusage' \
 		> $(BUILD_DIR)/gen_cmdline.sh
 
-$(BUILD_DIR)/gen_initramfs.sh: $(BUILD_DIR)/build-config
+$(BUILD_DIR)/gen_initramfs.sh: $(BUILD_DIR)/temp/append_base_layout $(BUILD_DIR)/temp/create_initramfs \
+	$(BUILD_DIR)/temp/initramfs_append_func
 	cat gen_initramfs.sh | sed \
 		-e '/#BEGIN FEATURES append_base_layout()/ r $(BUILD_DIR)/temp/append_base_layout' \
 		-e '/#BEGIN FEATURES create_initramfs()/ r $(BUILD_DIR)/temp/create_initramfs' \
 		-e '/#BEGIN FEATURES initramfs_append_func/ r $(BUILD_DIR)/temp/initramfs_append_func' \
 		> $(BUILD_DIR)/gen_initramfs.sh
 
-$(BUILD_DIR)/gen_determineargs.sh: $(BUILD_DIR)/build-config
+$(BUILD_DIR)/gen_determineargs.sh: $(BUILD_DIR)/temp/determine_real_args
 	cat gen_determineargs.sh | sed \
 		-e '/#BEGIN FEATURES determine_real_args()/ r $(BUILD_DIR)/temp/determine_real_args' \
 		> $(BUILD_DIR)/gen_determineargs.sh
 
-$(BUILD_DIR)/software.sh: $(BUILD_DIR)/temp/
+$(BUILD_DIR)/software.sh:
+	install -d $(BUILD_DIR)/temp/
 	echo -e $(SOFTWARE_VERSION) > $(BUILD_DIR)/temp/versions
 	cat $(BUILD_DIR)/temp/versions defaults/software.sh > $(BUILD_DIR)/software.sh
 
-$(BUILD_DIR)/%: % $(BUILD_DIR)/
+$(BUILD_DIR)/%: %
+	install -d $(BUILD_DIR)/
 	cp $< $@
 
 $(BUILD_DIR)/genkernel: $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/software.sh

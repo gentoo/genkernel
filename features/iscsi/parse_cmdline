@@ -1,0 +1,4 @@
+		--iscsi|--no-iscsi)
+			CMD_ISCSI=$(parse_optbool "$*")
+			print_info 3 "CMD_ISCSI: ${CMD_ISCSI}"
+			;;
