@@ -27,7 +27,7 @@ gen_dep_list() {
 	if isTrue "${ALLRAMDISKMODULES}"
 	then
 		cat "${moddir}/modules.builtin"
-		cat "${moddir}/modules.order"
+		cat "${moddir}/modules.dep" | cut -d':' -f1
 	else
 		local -a modlist=() moddeplist=()
 
