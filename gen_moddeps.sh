@@ -10,15 +10,26 @@ mod_dep_list() {
 	cat "${TEMP}/moddeps"
 }
 
+xbasename() {
+	local -a moddeplist=( $( </dev/stdin ) )
+
+	if (( ${#moddeplist[@]} > 0 ))
+	then
+		# prepend slash to each moddeplist element
+		# to avoid passing elements as basename options
+		basename -s "${KEXT}" "${moddeplist[@]/#/\/}"
+	fi
+}
+
 gen_dep_list() {
 	local moddir="${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}"
 
 	if isTrue "${ALLRAMDISKMODULES}"
 	then
 		cat "${moddir}/modules.builtin"
-		cat "${moddir}/modules.order"
+		cat "${moddir}/modules.dep" | cut -d':' -f1
 	else
-		local -a modlist=()
+		local -a modlist=() moddeplist=()
 
 		local mygroups
 		for mygroups in ${!MODULES_*} GK_INITRAMFS_ADDITIONAL_KMODULES
@@ -44,8 +55,7 @@ gen_dep_list() {
 		local mydeps mymod
 		while IFS=" " read -r -u 3 mymod mydeps
 		do
-			echo ${mymod%:}
-			printf '%s\n' ${mydeps}
+			moddeplist+=( ${mymod%:} ${mydeps} )
 		done 3< <(
 			local -a rxargs=( "${modlist[@]}" )
 
@@ -59,5 +69,7 @@ gen_dep_list() {
 			cat "${moddir}/modules.dep" \
 				| grep -F "${rxargs[@]}"
 		)
-	fi | xargs basename -s "${KEXT}" | sort | uniq
+
+		printf '%s\n' "${moddeplist[@]}"
+	fi | xbasename | sort | uniq
 }
