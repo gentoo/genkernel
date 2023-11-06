@@ -54,7 +54,7 @@ endif
 MANDIR = $(PREFIX)/share/man
 
 
-all: $(BUILD_DIR)/genkernel man kconfig
+all: $(BUILD_DIR)/genkernel $(BUILD_DIR)/build-config man kconfig
 
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
