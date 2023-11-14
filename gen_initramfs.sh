@@ -2309,8 +2309,8 @@ create_initramfs() {
 		if isTrue "${MICROCODE_INITRAMFS}"
 		then
 			local cfg_CONFIG_MICROCODE=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_MICROCODE)
-			local cfg_CONFIG_MICROCODE_INTEL=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_MICROCODE_INTEL)
-			local cfg_CONFIG_MICROCODE_AMD=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_MICROCODE_AMD)
+			local cfg_CONFIG_CPU_SUP_INTEL=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_CPU_SUP_INTEL)
+			local cfg_CONFIG_CPU_SUP_AMD=$(kconfig_get_opt "${kconfig_file_used}" CONFIG_CPU_SUP_AMD)
 			print_info 1 "$(get_indent 1)>> Adding early-microcode support ..."
 			local UCODEDIR="${TEMP}/ucode_tmp/kernel/x86/microcode/"
 			mkdir -p "${UCODEDIR}" || gen_die "Failed to create '${UCODEDIR}'!"
@@ -2323,9 +2323,9 @@ create_initramfs() {
 
 			if [[ "${MICROCODE}" == 'all' || "${MICROCODE}" == 'intel' ]]
 			then
-				if [[ "${cfg_CONFIG_MICROCODE_INTEL}" != "y" ]]
+				if [[ "${cfg_CONFIG_CPU_SUP_INTEL}" != "y" ]]
 				then
-					print_warning 1 "$(get_indent 2)early-microcode: Will add Intel microcode(s) like requested (--microcode=${MICROCODE}) but kernel has set CONFIG_MICROCODE_INTEL=n"
+					print_warning 1 "$(get_indent 2)early-microcode: Will add Intel microcode(s) like requested (--microcode=${MICROCODE}) but kernel has set CONFIG_CPU_SUP_INTEL=n"
 				fi
 
 				if [ -d /lib/firmware/intel-ucode ]
@@ -2340,9 +2340,9 @@ create_initramfs() {
 
 			if [[ "${MICROCODE}" == 'all' || "${MICROCODE}" == 'amd' ]]
 			then
-				if [[ "${cfg_CONFIG_MICROCODE_AMD}" != "y" ]]
+				if [[ "${cfg_CONFIG_CPU_SUP_AMD}" != "y" ]]
 				then
-					print_warning 1 "$(get_indent 2)early-microcode: Will add AMD microcode(s) like requested (--microcode=${MICROCODE}) but kernel has set CONFIG_MICROCODE_AMD=n"
+					print_warning 1 "$(get_indent 2)early-microcode: Will add AMD microcode(s) like requested (--microcode=${MICROCODE}) but kernel has set CONFIG_CPU_SUP_AMD=n"
 				fi
 
 				if [ -d /lib/firmware/amd-ucode ]
