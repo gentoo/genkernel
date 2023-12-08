@@ -2,7 +2,7 @@
 # $Id$
 
 PATH="${PATH}:/sbin:/usr/sbin"
-GK_V='4.3.8'
+GK_V='4.3.9'
 
 # Normalize locales
 export LC_ALL=C
