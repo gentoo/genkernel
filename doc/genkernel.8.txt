@@ -241,6 +241,9 @@ LOW-LEVEL COMPILATION OPTIONS
     when the system running genkernel has a different architecture like
     the system which should boot the created kernel/initramfs.
 
+*--kernel-cross-compile*=<target triplet>::
+    Target triple (i.e. aarch64-linux-gnu) to build kernel for.
+
 *--kernel-ar*=<archiver>::
     Archiver to use for the kernel compilation.
 
@@ -619,6 +622,9 @@ NOTE: System.map filename and System.map symlink name must be different.
 
 *--*[*no-*]*firmware*::
     Enable or disables copying of firmware into initramfs.
+
+*--*[*no-*]*all-firmware*::
+    Enable or disable copying of all firmware into initramfs
 
 *--firmware-dir*=<dir>::
     Specify directory to copy firmware from (defaults to '/lib/firmware').
