@@ -991,11 +991,13 @@ config_kernel() {
 			[ ${KV_NUMERIC} -le 4003 ] && kconfigs_microcode+=( 'CONFIG_MICROCODE_EARLY' )
 
 			# Intel
-			kconfigs_microcode_intel+=( 'CONFIG_MICROCODE_INTEL' )
+			[ ${KV_NUMERIC} -ge 6006 ] && kconfigs_microcode_intel+=( 'CONFIG_CPU_SUP_INTEL' )
+			[ ${KV_NUMERIC} -lt 6006 ] && kconfigs_microcode_intel+=( 'CONFIG_MICROCODE_INTEL' )
 			[ ${KV_NUMERIC} -le 4003 ] && kconfigs_microcode_intel+=( 'CONFIG_MICROCODE_INTEL_EARLY' )
 
 			# AMD
-			kconfigs_microcode_amd=( 'CONFIG_MICROCODE_AMD' )
+			[ ${KV_NUMERIC} -ge 6006 ] && kconfigs_microcode_amd+=( 'CONFIG_CPU_SUP_AMD' )
+			[ ${KV_NUMERIC} -lt 6006 ] && kconfigs_microcode_amd+=( 'CONFIG_MICROCODE_AMD' )
 			[ ${KV_NUMERIC} -le 4003 ] && kconfigs_microcode_amd+=( 'CONFIG_MICROCODE_AMD_EARLY' )
 
 			[[ "${MICROCODE}" == all ]]   && kconfigs_microcode+=( ${kconfigs_microcode_amd[@]} ${kconfigs_microcode_intel[@]} )
@@ -1016,14 +1018,16 @@ config_kernel() {
 			required_kernel_options+=( 'CONFIG_MICROCODE' )
 			case "${MICROCODE}" in
 				amd)
-					required_kernel_options+=( 'CONFIG_MICROCODE_AMD' )
+					[ ${KV_NUMERIC} -ge 6006 ] && required_kernel_options+=( 'CONFIG_CPU_SUP_AMD' )
+					[ ${KV_NUMERIC} -lt 6006 ] && required_kernel_options+=( 'CONFIG_MICROCODE_AMD' )
 					;;
 				intel)
-					required_kernel_options+=( 'CONFIG_MICROCODE_INTEL' )
+					[ ${KV_NUMERIC} -ge 6006 ] && required_kernel_options+=( 'CONFIG_CPU_SUP_INTEL' )
+					[ ${KV_NUMERIC} -lt 6006 ] && required_kernel_options+=( 'CONFIG_MICROCODE_INTEL' )
 					;;
 				all)
-					required_kernel_options+=( 'CONFIG_MICROCODE_AMD' )
-					required_kernel_options+=( 'CONFIG_MICROCODE_INTEL' )
+					[ ${KV_NUMERIC} -ge 6006 ] && required_kernel_options+=( 'CONFIG_CPU_SUP_AMD' 'CONFIG_CPU_SUP_INTEL' )
+					[ ${KV_NUMERIC} -lt 6006 ] && required_kernel_options+=( 'CONFIG_MICROCODE_AMD' 'CONFIG_MICROCODE_INTEL' )
 					;;
 			esac
 		else
