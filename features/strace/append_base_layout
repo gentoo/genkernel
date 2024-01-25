@@ -1,0 +1,1 @@
+	isTrue "${STRACE}" && build_parameters+=( --strace ) || build_parameters+=( --no-strace )

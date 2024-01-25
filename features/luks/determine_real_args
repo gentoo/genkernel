@@ -1,0 +1,3 @@
+	set_config_with_override BOOL   LUKS                                  CMD_LUKS                                  "no"
+	set_config_with_override BOOL   GPG                                   CMD_GPG                                   "no"
+	set_config_with_override BOOL   KEYCTL                                CMD_KEYCTL                                "no"

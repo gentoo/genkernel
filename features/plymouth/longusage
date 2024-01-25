@@ -1,0 +1,3 @@
+  echo "	--plymouth		Enable Plymouth support"
+  echo "	--no-plymouth		Do not enable Plymouth support"
+  echo "	--plymouth-theme=<theme>    Embed the given Plymouth theme"

@@ -14,8 +14,22 @@ things mentioned above.
 DEPENDENCIES:
   - GCC and binutils
   - GNU Bash
+  - GNU Make
   - PaX Utilities
   - Autoconf and Automake
+  - Asciidoc
+  - Dependencies of each feature included
+
+INSTALLATION:
+  Build with ``make PREFIX=<prefix> GK_FEATURES=<features>''
+  <features> is a space-separated list containing files in features/ directory,
+  e.g. GK_FEATURES="luks, lvm, plymouth". See MODULAR FEATURES section for detail.
+  Optionally:
+  - BINDIR: defaults to "$PREFIX/bin"
+  - SYSCONFDIR: defaults to "/etc" for PREFIX=/usr or "$PREFIX/etc" otherwise
+  - MANDIR: defaults to "$PREFIX/share/man"
+
+  Then install with ``make install'', optionally with DESTDIR
 
 USAGE:
   See https://wiki.gentoo.org/wiki/Genkernel or
@@ -62,3 +76,18 @@ BOOTING A KERNEL WITH INITRAMFS:
 
   NOTE: The example above uses genkernel's --symlink feature and
         initramfs was built with --lvm, --luks and --ssh.
+
+MODULAR FEATURES
+
+It is possible to include or exclude features
+It is also possible to add your own.
+Each feature is contained in a subdirectory within features/
+which then includes these files:
+  - genkernel_conf
+  - man_genkernel_8
+  - parse_cmdline
+  - longusage
+  - append_base_layout
+  - create_initramfs
+  - initramfs_append_func
+  - determine_real_args

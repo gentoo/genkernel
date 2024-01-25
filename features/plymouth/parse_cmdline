@@ -1,0 +1,11 @@
+		--plymouth)
+			CMD_PLYMOUTH="yes"
+			PLYMOUTH_THEME='text'
+			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
+			;;
+		--plymouth-theme=*)
+			CMD_PLYMOUTH="yes"
+			PLYMOUTH_THEME="${*#*=}"
+			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
+			print_info 3 "PLYMOUTH_THEME: ${PLYMOUTH_THEME}"
+			;;

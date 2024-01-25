@@ -1,0 +1,15 @@
+*--*[*no-*]*luks*::
+    Includes or excludes LUKS support.
+    When enabled, this will compile cryptsetup for you.
+
+*--*[*no-*]*gpg*::
+    Includes or excludes support for GnuPG 1.x, the portable standalone branch
+    of GnuPG. A key can be made from
+    `gpg --symmetric -o /path/to/LUKS-key.gpg /path/to/LUKS-key` .
+    After that, re-point the *root_key* argument to the new .gpg file.
+
+*--*[*no-*]*keyctl*::
+    Includes or excludes support for keyutils keyctl.
+    This way a LUKS passphrase can be loaded into a keyring at boot time
+    to unlock multiple devices (root, swap, etc.) without retyping it for each
+    one.

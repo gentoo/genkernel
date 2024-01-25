@@ -1,0 +1,2 @@
+  echo "	--btrfs			Include Btrfs support (enabled by default if rootfs is Btrfs)"
+  echo "	--no-btrfs		Exclude Btrfs support"
