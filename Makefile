@@ -5,8 +5,6 @@ MANPAGE = genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
 EXTRA_DIST = $(MANPAGE) ChangeLog $(KCONF)
 
-default: kconfig man
-
 # First argument in the override file
 # Second argument is the base file
 BASE_KCONF = defaults/kernel-generic-config
@@ -14,18 +12,54 @@ ARCH_KCONF = $(wildcard arch/*/arch-config)
 GENERATED_KCONF = $(subst arch-,generated-,$(ARCH_KCONF))
 KCONF = $(GENERATED_KCONF)
 
+BUILD_DIR = build
+
+FINAL_DEPS = genkernel.conf \
+	gen_cmdline.sh \
+	gen_initramfs.sh \
+	gen_determineargs.sh \
+	gen_arch.sh \
+	gen_bootloader.sh \
+	gen_compile.sh \
+	gen_configkernel.sh \
+	gen_funcs.sh \
+	gen_moddeps.sh \
+	gen_package.sh \
+	gen_worker.sh \
+	path_expander.py
+
+SOFTWARE = BCACHE_TOOLS BOOST BTRFS_PROGS BUSYBOX COREUTILS CRYPTSETUP \
+	DMRAID DROPBEAR EUDEV EXPAT E2FSPROGS FUSE GPG \
+	HWIDS ISCSI JSON_C KMOD LIBAIO LIBGCRYPT LIBGPGERROR LIBXCRYPT LVM \
+	LZO MDADM MULTIPATH_TOOLS POPT STRACE THIN_PROVISIONING_TOOLS UNIONFS_FUSE \
+	USERSPACE_RCU UTIL_LINUX XFSPROGS XZ ZLIB ZSTD
+
+SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)}\n")
+
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+ifeq ($(PREFIX), /usr)
+	SYSCONFDIR = /etc
+else
+	SYSCONFDIR = $(PREFIX)/etc
+endif
+MANDIR = $(PREFIX)/share/man
+
+all: $(BUILD_DIR)/genkernel $(BUILD_DIR)/build-config man kconfig
+
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
 	@echo "GENERATED_KCONF=$(GENERATED_KCONF)"
 
 kconfig: $(GENERATED_KCONF)
-man: $(MANPAGE)
+man: $(addprefix $(BUILD_DIR)/,$(MANPAGE))
 
 ChangeLog:
 	git log >$@
 
 clean:
 	rm -f $(EXTRA_DIST)
+	rm -rf $(BUILD_DIR)
 
 check-git-repository:
 ifneq ($(UNCLEAN),1)
@@ -46,7 +80,7 @@ dist: verify-shellscripts-initramfs verify-doc check-git-repository distclean $(
 distclean: clean
 	rm -Rf "$(distdir)" "$(distdir)".tar "$(distdir)".tar.xz
 
-.PHONY: clean check-git-repository dist distclean kconfig verify-doc
+.PHONY: clean check-git-repository dist distclean kconfig verify-doc install
 
 # Generic rules
 %/generated-config: %/arch-config $(BASE_KCONF) merge.pl Makefile
@@ -56,9 +90,9 @@ distclean: clean
 		perl merge.pl $< $(BASE_KCONF) | sort > $@ ; \
 	fi ;
 
-%.8: doc/%.8.txt doc/asciidoc.conf Makefile genkernel
-	a2x --conf-file=doc/asciidoc.conf --attribute="genkernelversion=$(PACKAGE_VERSION)" \
-		 --format=manpage -D . "$<"
+$(BUILD_DIR)/%.8: doc/%.8.txt doc/asciidoc.conf Makefile $(BUILD_DIR)/doc/genkernel.8.txt
+	a2x --conf-file=doc/asciidoc.conf \
+		 --format=manpage -D $(BUILD_DIR) "$(BUILD_DIR)/$<"
 
 verify-doc: doc/genkernel.8.txt
 	@rm -f faildoc ; \
@@ -99,3 +133,57 @@ verify-shellscripts-initramfs:
 		--severity error \
 		defaults/linuxrc \
 		defaults/initrd.scripts
+
+$(BUILD_DIR)/build-config:
+# $(addprefix $(BUILD_DIR)/temp/,$(TEMPFILES))
+	install -d $(BUILD_DIR)
+	echo ${PREFIX} > $(BUILD_DIR)/PREFIX
+	echo ${BINDIR} > $(BUILD_DIR)/BINDIR
+	echo ${SYSCONFDIR} > $(BUILD_DIR)/SYSCONFDIR
+	echo ${MANDIR} > $(BUILD_DIR)/MANDIR
+	touch $(BUILD_DIR)/build-config
+
+$(BUILD_DIR)/software.sh:
+	install -d $(BUILD_DIR)/temp/
+	echo -e $(SOFTWARE_VERSION) > $(BUILD_DIR)/temp/versions
+	cat $(BUILD_DIR)/temp/versions defaults/software.sh > $(BUILD_DIR)/software.sh
+
+$(BUILD_DIR)/doc/genkernel.8.txt:
+	install -d $(BUILD_DIR)/doc/
+	cp doc/genkernel.8.txt $(BUILD_DIR)/doc/genkernel.8.txt
+
+$(BUILD_DIR)/%: %
+	install -d $(BUILD_DIR)/
+	cp $< $@
+
+$(BUILD_DIR)/genkernel: $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/software.sh
+	cp genkernel $(BUILD_DIR)/genkernel
+
+install: PREFIX := $(file <$(BUILD_DIR)/PREFIX)
+install: BINDIR := $(file <$(BUILD_DIR)/BINDIR)
+install: SYSCONFDIR := $(file <$(BUILD_DIR)/SYSCONFDIR)
+install: MANDIR := $(file <$(BUILD_DIR)/MANDIR)
+install: all
+	install -d $(DESTDIR)/$(SYSCONFDIR)
+	install -m 644 $(BUILD_DIR)/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
+
+	install -d $(DESTDIR)/$(BINDIR)
+	install -m 755 $(BUILD_DIR)/genkernel $(DESTDIR)/$(BINDIR)/
+
+	install -d $(DESTDIR)/$(PREFIX)/share/genkernel
+
+	cp -rp arch $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp defaults $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp gkbuilds $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -rp worker_modules $(DESTDIR)/$(PREFIX)/share/genkernel/
+
+	install -m 755 -t $(DESTDIR)/$(PREFIX)/share/genkernel $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS))
+
+	install $(BUILD_DIR)/software.sh $(DESTDIR)/$(PREFIX)/share/genkernel/defaults
+
+	install -d $(DESTDIR)/$(MANDIR)
+	install $(BUILD_DIR)/genkernel.8 $(DESTDIR)/$(MANDIR)/man8
+
