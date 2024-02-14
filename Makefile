@@ -5,6 +5,8 @@ MANPAGE = genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
 EXTRA_DIST = $(MANPAGE) ChangeLog $(KCONF)
 
+default: all
+
 # First argument in the override file
 # Second argument is the base file
 BASE_KCONF = defaults/kernel-generic-config
@@ -15,24 +17,20 @@ KCONF = $(GENERATED_KCONF)
 BUILD_DIR = build
 
 FINAL_DEPS = genkernel.conf \
-	gen_cmdline.sh \
-	gen_initramfs.sh \
-	gen_determineargs.sh \
 	gen_arch.sh \
 	gen_bootloader.sh \
+	gen_cmdline.sh \
 	gen_compile.sh \
 	gen_configkernel.sh \
+	gen_determineargs.sh \
 	gen_funcs.sh \
+	gen_initramfs.sh \
 	gen_moddeps.sh \
 	gen_package.sh \
 	gen_worker.sh \
 	path_expander.py
 
-SOFTWARE = BCACHE_TOOLS BOOST BTRFS_PROGS BUSYBOX COREUTILS CRYPTSETUP \
-	DMRAID DROPBEAR EUDEV EXPAT E2FSPROGS FUSE GPG \
-	HWIDS ISCSI JSON_C KMOD LIBAIO LIBGCRYPT LIBGPGERROR LIBXCRYPT LVM \
-	LZO MDADM MULTIPATH_TOOLS POPT STRACE THIN_PROVISIONING_TOOLS UNIONFS_FUSE \
-	USERSPACE_RCU UTIL_LINUX XFSPROGS XZ ZLIB ZSTD
+SOFTWARE = BCACHE_TOOLS BOOST BTRFS_PROGS BUSYBOX COREUTILS CRYPTSETUP DMRAID DROPBEAR EUDEV EXPAT E2FSPROGS FUSE GPG HWIDS ISCSI JSON_C KMOD LIBAIO LIBGCRYPT LIBGPGERROR LIBXCRYPT LVM LZO MDADM MULTIPATH_TOOLS POPT STRACE THIN_PROVISIONING_TOOLS UNIONFS_FUSE USERSPACE_RCU UTIL_LINUX XFSPROGS XZ ZLIB ZSTD
 
 SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)}\n")
 
@@ -149,15 +147,15 @@ $(BUILD_DIR)/software.sh:
 	cat $(BUILD_DIR)/temp/versions defaults/software.sh > $(BUILD_DIR)/software.sh
 
 $(BUILD_DIR)/doc/genkernel.8.txt:
-	install -d $(BUILD_DIR)/doc/
-	cp doc/genkernel.8.txt $(BUILD_DIR)/doc/genkernel.8.txt
+	install -D doc/genkernel.8.txt $(BUILD_DIR)/doc/genkernel.8.txt
 
 $(BUILD_DIR)/%: %
-	install -d $(BUILD_DIR)/
-	cp $< $@
+	install -D $< $@
 
 $(BUILD_DIR)/genkernel: $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/software.sh
-	cp genkernel $(BUILD_DIR)/genkernel
+	install genkernel $(BUILD_DIR)/genkernel
+
+SHARE_DIRS = arch defaults gkbuilds modules netboot patches worker_modules
 
 install: PREFIX := $(file <$(BUILD_DIR)/PREFIX)
 install: BINDIR := $(file <$(BUILD_DIR)/BINDIR)
@@ -172,13 +170,7 @@ install: all
 
 	install -d $(DESTDIR)/$(PREFIX)/share/genkernel
 
-	cp -rp arch $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp defaults $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp gkbuilds $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp modules $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp netboot $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp patches $(DESTDIR)/$(PREFIX)/share/genkernel/
-	cp -rp worker_modules $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -ra $(SHARE_DIRS) $(DESTDIR)/$(PREFIX)/share/genkernel/
 
 	install -m 755 -t $(DESTDIR)/$(PREFIX)/share/genkernel $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS))
 
