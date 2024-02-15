@@ -175,10 +175,10 @@ verify-shellscripts-initramfs:
 $(BUILD_DIR)/build-config:
 # $(addprefix $(BUILD_DIR)/temp/,$(TEMPFILES))
 	install -d $(BUILD_DIR)
-	echo ${PREFIX} > $(BUILD_DIR)/PREFIX
-	echo ${BINDIR} > $(BUILD_DIR)/BINDIR
-	echo ${SYSCONFDIR} > $(BUILD_DIR)/SYSCONFDIR
-	echo ${MANDIR} > $(BUILD_DIR)/MANDIR
+	echo $(PREFIX) > $(BUILD_DIR)/PREFIX
+	echo $(BINDIR) > $(BUILD_DIR)/BINDIR
+	echo $(SYSCONFDIR) > $(BUILD_DIR)/SYSCONFDIR
+	echo $(MANDIR) > $(BUILD_DIR)/MANDIR
 	touch $(BUILD_DIR)/build-config
 
 $(BUILD_DIR)/software.sh:
@@ -197,11 +197,11 @@ $(BUILD_DIR)/genkernel: $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/so
 
 SHARE_DIRS = arch defaults gkbuilds modules netboot patches worker_modules
 
-install: PREFIX := $(file <$(BUILD_DIR)/PREFIX)
-install: BINDIR := $(file <$(BUILD_DIR)/BINDIR)
-install: SYSCONFDIR := $(file <$(BUILD_DIR)/SYSCONFDIR)
-install: MANDIR := $(file <$(BUILD_DIR)/MANDIR)
 install: all
+	$(eval PREFIX := $(file <$(BUILD_DIR)/PREFIX))
+	$(eval BINDIR := $(file <$(BUILD_DIR)/BINDIR))
+	$(eval SYSCONFDIR := $(file <$(BUILD_DIR)/SYSCONFDIR))
+	$(eval MANDIR := $(file <$(BUILD_DIR)/MANDIR))
 	install -d $(DESTDIR)/$(SYSCONFDIR)
 	install -m 644 $(BUILD_DIR)/genkernel.conf $(DESTDIR)/$(SYSCONFDIR)/
 
