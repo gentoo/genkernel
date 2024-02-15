@@ -1,9 +1,12 @@
 #PACKAGE_VERSION = $(shell /bin/grep -F -- GK_V= genkernel | sed "s/.*GK_V='\([^']\+\)'/\1/")
+PACKAGE_VERSION = $(file <VERSION)
+ifeq ("$(PACKAGE_VERSION)", "")
 PACKAGE_VERSION = $(shell git describe --tags |sed 's,^v,,g')
+endif
 distdir = genkernel-$(PACKAGE_VERSION)
 MANPAGE = genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
-EXTRA_DIST = $(MANPAGE) ChangeLog $(KCONF)
+EXTRA_DIST = ChangeLog $(KCONF)
 
 default: all
 
@@ -82,6 +85,7 @@ all: $(BUILD_DIR)/genkernel $(BUILD_DIR)/build-config man kconfig
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
 	@echo "GENERATED_KCONF=$(GENERATED_KCONF)"
+	@echo "PACKAGE_VERSION=$(PACKAGE_VERSION)"
 
 kconfig: $(GENERATED_KCONF)
 man: $(addprefix $(BUILD_DIR)/,$(MANPAGE))
@@ -103,6 +107,7 @@ endif
 
 dist: verify-shellscripts-initramfs verify-doc check-git-repository distclean $(EXTRA_DIST)
 	mkdir "$(distdir)"
+	echo $(PACKAGE_VERSION) > $(distdir)/VERSION
 	git ls-files -z | xargs -0 cp --no-dereference --parents --target-directory="$(distdir)" \
 		$(EXTRA_DIST)
 	tar cf "$(distdir)".tar "$(distdir)"
@@ -124,7 +129,8 @@ distclean: clean
 
 $(BUILD_DIR)/%.8: doc/%.8.txt doc/asciidoc.conf Makefile $(BUILD_DIR)/doc/genkernel.8.txt
 	a2x --conf-file=doc/asciidoc.conf \
-		 --format=manpage -D $(BUILD_DIR) "$(BUILD_DIR)/$<"
+		--format=manpage -D $(BUILD_DIR) --attribute="genkernelversion=$(PACKAGE_VERSION)" \
+		"$(BUILD_DIR)/$<"
 
 verify-doc: doc/genkernel.8.txt
 	@rm -f faildoc ; \
