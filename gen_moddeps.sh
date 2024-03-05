@@ -10,27 +10,17 @@ mod_dep_list() {
 	cat "${TEMP}/moddeps"
 }
 
-xbasename() {
-	local -a moddeplist=( $( </dev/stdin ) )
-
-	if (( ${#moddeplist[@]} > 0 ))
-	then
-		# prepend slash to each moddeplist element
-		# to avoid passing elements as basename options
-		basename -s "${KEXT}" "${moddeplist[@]/#/\/}"
-	fi
-}
-
 gen_dep_list() {
+	local -a modlist=() moddeplist=()
 	local moddir="${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}"
+
+	# Always include firmware for built-in modules
+	moddeplist=( $(cat "${moddir}/modules.builtin") )
 
 	if isTrue "${ALLRAMDISKMODULES}"
 	then
-		cat "${moddir}/modules.builtin"
-		cat "${moddir}/modules.dep" | cut -d':' -f1
+		moddeplist+=( $(cat "${moddir}/modules.dep" | cut -d':' -f1) )
 	else
-		local -a modlist=() moddeplist=()
-
 		local mygroups
 		for mygroups in ${!MODULES_*} GK_INITRAMFS_ADDITIONAL_KMODULES
 		do
@@ -60,15 +50,18 @@ gen_dep_list() {
 			local -a rxargs=( "${modlist[@]}" )
 
 			rxargs=( "${rxargs[@]/#/-e\/}" )
-			rxargs=( "${rxargs[@]/%/${KEXT}:}" )
+			rxargs=(
+				"${rxargs[@]/%/.ko:}"
+				"${rxargs[@]/%/${KEXT}:}"
+			)
 
 			cat "${moddir}/modules.dep" \
 				| grep -F "${rxargs[@]}"
 		)
+	fi
 
-		# Always include firmware for built-in modules
-		cat "${moddir}/modules.builtin"
+	moddeplist=( ${moddeplist[@]##*/} )
+	moddeplist=( ${moddeplist[@]%%.*} )
 
-		printf '%s\n' "${moddeplist[@]}"
-	fi | xbasename | sort | uniq
+	printf '%s\n' "${moddeplist[@]}" | sort | uniq
 }
