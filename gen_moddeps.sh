@@ -62,13 +62,12 @@ gen_dep_list() {
 			rxargs=( "${rxargs[@]/#/-e\/}" )
 			rxargs=( "${rxargs[@]/%/${KEXT}:}" )
 
-			cat "${moddir}/modules.builtin" \
-				| xargs printf '%s:\n' \
-				| grep -F "${rxargs[@]}"
-
 			cat "${moddir}/modules.dep" \
 				| grep -F "${rxargs[@]}"
 		)
+
+		# Always include firmware for built-in modules
+		cat "${moddir}/modules.builtin"
 
 		printf '%s\n' "${moddeplist[@]}"
 	fi | xbasename | sort | uniq
