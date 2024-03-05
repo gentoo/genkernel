@@ -1773,6 +1773,7 @@ append_firmware() {
 		fwlist=( "${FIRMWARE_FILES[@]}" )
 	else
 		local myfw=
+		local -a myfw_f=()
 		while IFS= read -r -u 3 myfw
 		do
 			if [ -z "${myfw}" ]
@@ -1780,13 +1781,20 @@ append_firmware() {
 				gen_die "modinfo error!"
 			fi
 
-			if [ ! -f "${FIRMWARE_DIR}/${myfw}" ]
+			myfw_f=( $(compgen -G "${FIRMWARE_DIR}/${myfw}*") )
+
+			if [ ${#myfw_f[@]} -gt 1 ]
+			then
+				gen_die "excessive number of firmwares!"
+			fi
+
+			if [ ${#myfw_f[@]} -lt 1 ]
 			then
 				print_warning 3 "$(get_indent 3) - ${myfw} is missing; Ignoring ..."
 				continue
 			fi
 
-			fwlist+=( "${myfw}" )
+			fwlist+=( "${myfw_f#${FIRMWARE_DIR}/}" )
 		done 3< <( (
 			modinfo -b "${KERNEL_MODULES_PREFIX%/}" -k "${KV}" -F firmware $(mod_dep_list) 2>/dev/null || echo
 		) | sort | uniq )
