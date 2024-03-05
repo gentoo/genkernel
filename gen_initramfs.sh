@@ -1923,7 +1923,7 @@ append_modules() {
 
 		if [ ! -f "${mymod}" ]
 		then
-			gen_die "Module '${i}${KEXT}' is missing!"
+			gen_die "Module '${mymod}' is missing!"
 		fi
 
 		modlist+=( "${mymod/#${modules_srcdir}\//}" )
