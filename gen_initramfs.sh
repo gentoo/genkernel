@@ -1806,6 +1806,10 @@ append_firmware() {
 		cp -rL --parents --target-directory="${TDIR}/lib/firmware" "${fwlist[@]}" 2>/dev/null \
 			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
 		popd &>/dev/null || gen_die "Failed to chdir!"
+
+		pushd "${TDIR}/lib/firmware" &>/dev/null || gen_die "Failed to chdir to '${TDIR}/lib/firmware'!"
+		find_and_unpack xz zstd
+		popd &>/dev/null || gen_die "Failed to chdir!"
 	fi
 
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
@@ -1939,6 +1943,10 @@ append_modules() {
 
 	cp -ax --parents --target-directory "${modules_dstdir}" modules* 2>/dev/null \
 		|| gen_die "Failed to copy '${modules_srcdir}/modules*' to '${modules_dstdir}'!"
+
+	pushd "${modules_dstdir}" &>/dev/null || gen_die "Failed to chdir to '${modules_dstdir}'!"
+	find_and_unpack gz xz zstd
+	popd &>/dev/null || gen_die "Failed to chdir!"
 
 	print_info 2 "$(get_indent 2)modules: Updating modules.dep ..."
 	local depmod_cmd=( depmod -a -b "${TDIR}" ${KV} )

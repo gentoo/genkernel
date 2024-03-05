@@ -2054,6 +2054,40 @@ expand_file() {
 	echo "${expanded_file}"
 }
 
+find_and_unpack() {
+	local flist
+
+	local fmt
+	for fmt in "$@"
+	do
+		case "${fmt}" in
+		"gz"|"xz"|"zstd")
+			flist=( $(find -type f -name "*.${fmt}") )
+			;;
+		*)
+			gen_die "unknown compression format: ${fmt}"
+			;;
+		esac
+
+		if [ ${#flist[@]} -lt 1 ]
+		then
+			continue
+		fi
+
+		case "${fmt}" in
+		"gz")
+			gunzip "${flist[@]}"
+			;;
+		"xz")
+			unxz "${flist[@]}"
+			;;
+		"zstd")
+			unzstd "${flist[@]}"
+			;;
+		esac
+	done
+}
+
 find_kernel_binary() {
 	local kernel_binary=${*}
 	local kernel_binary_found=
