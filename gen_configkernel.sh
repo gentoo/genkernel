@@ -25,6 +25,7 @@ determine_kernel_config_file() {
 		local -a kconfig_candidates
 
 		local -a gk_kconfig_candidates
+		gk_kconfig_candidates+=( "${KERNEL_MODULES_PREFIX%/}/lib/modules/${KV}/source/.config" )
 		gk_kconfig_candidates+=( "${GK_SHARE}/arch/${ARCH}/kernel-config-${KV}" )
 		gk_kconfig_candidates+=( "${GK_SHARE}/arch/${ARCH}/kernel-config-${VER}.${PAT}" )
 		gk_kconfig_candidates+=( "${GK_SHARE}/arch/${ARCH}/generated-config" )
