@@ -69,7 +69,7 @@ SOFTWARE = BCACHE_TOOLS \
 	ZLIB \
 	ZSTD
 
-SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)}\n")
+SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)}")
 
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
@@ -183,7 +183,7 @@ $(BUILD_DIR)/build-config:
 
 $(BUILD_DIR)/software.sh:
 	install -d $(BUILD_DIR)/temp/
-	echo -e $(SOFTWARE_VERSION) > $(BUILD_DIR)/temp/versions
+	printf '%s\n' $(SOFTWARE_VERSION) > $(BUILD_DIR)/temp/versions
 	cat $(BUILD_DIR)/temp/versions defaults/software.sh > $(BUILD_DIR)/software.sh
 
 $(BUILD_DIR)/doc/genkernel.8.txt:
