@@ -484,6 +484,7 @@ append_base_layout() {
 	isTrue "${ZFS}" && build_parameters+=( --zfs ) || build_parameters+=( --no-zfs )
 	isTrue "${SPLASH}" && build_parameters+=( --splash ) || build_parameters+=( --no-splash )
 	isTrue "${PLYMOUTH}" && build_parameters+=( --plymouth ) || build_parameters+=( --no-plymouth )
+	isTrue "${SEDUTIL}" && build_parameters+=( --sedutil ) || build_parameters+=( --no-sedutil )
 	isTrue "${STRACE}" && build_parameters+=( --strace ) || build_parameters+=( --no-strace )
 	isTrue "${KEYCTL}" && build_parameters+=( --keyctl ) || build_parameters+=( --no-keyctl )
 	isTrue "${GPG}" && build_parameters+=( --gpg ) || build_parameters+=( --no-gpg )
@@ -1386,6 +1387,32 @@ append_plymouth() {
 	fi
 }
 
+append_sedutil() {
+	local PN=sedutil
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
 append_strace() {
 	local PN=strace
 	local TDIR="${TEMP}/initramfs-${PN}-temp"
@@ -2168,6 +2195,7 @@ create_initramfs() {
 	append_data 'multipath' "${MULTIPATH}"
 	append_data 'splash' "${SPLASH}"
 	append_data 'plymouth' "${PLYMOUTH}"
+	append_data 'sedutil' "${SEDUTIL}"
 	append_data 'strace' "${STRACE}"
 	append_data 'unionfs_fuse' "${UNIONFS}"
 	append_data 'xfsprogs' "${XFSPROGS}"
