@@ -1,0 +1,12 @@
+diff --git a/Common/DtaOptions.h b/Common/DtaOptions.h
+index c012af1..4d88539 100644
+--- a/Common/DtaOptions.h
++++ b/Common/DtaOptions.h
+@@ -20,6 +20,7 @@ along with sedutil.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ #ifndef _DTAOPTIONS_H
+ #define	_DTAOPTIONS_H
++#include <cstdint>
+ 
+ /** Output modes */
+ typedef enum _sedutiloutput {
