@@ -1093,8 +1093,7 @@ run_shell() {
 }
 
 fs_type_in_use() {
-	fs_type=$1
-	cut -d ' ' -f 3 < /proc/mounts | grep -Fq "${fs_type}"
+	grep -Eqse "^[^ ]+ [^ ]+ ${1} " /proc/mounts
 }
 
 mount_devfs() {
