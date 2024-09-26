@@ -1,0 +1,4 @@
+		--btrfs|--no-btrfs)
+			CMD_BTRFS=$(parse_optbool "$*")
+			print_info 3 "CMD_BTRFS: ${CMD_BTRFS}"
+			;;

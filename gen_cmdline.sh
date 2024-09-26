@@ -53,8 +53,6 @@ longusage() {
   echo "	--no-mrproper		Do not run 'make mrproper' before compilation"
   echo "	--splash		Install framebuffer splash support into initramfs"
   echo "	--no-splash		Do not install framebuffer splash"
-  echo "	--plymouth		Enable Plymouth support"
-  echo "	--no-plymouth		Do not enable Plymouth support"
   echo "	--install		Install the kernel after building"
   echo "	--no-install		Do not install the kernel after building"
   echo "	--symlink		Manage symlinks in /boot for installed images"
@@ -128,51 +126,21 @@ longusage() {
   echo "	--nice=<0-19>		Run the kernel make at the selected nice level"
   echo "	--no-nice		Don't be nice while running the kernel make"
   echo "  Initialization"
-  echo "	--splash=<theme>	Enable framebuffer splash using <theme>"
-  echo "	--splash-res=<res>	Select splash theme resolutions to install"
-  echo "	--splash=<theme>	Enable framebuffer splash using <theme>"
-  echo "	--splash-res=<res>	Select splash theme resolutions to install"
-  echo "	--plymouth-theme=<theme>    Embed the given Plymouth theme"
-  echo "	--do-keymap-auto	Forces keymap selection at boot"
-  echo "	--keymap		Enables keymap selection support"
-  echo "	--no-keymap		Disables keymap selection support"
-  echo "	--bcache		Include block layer cache (bcache) support"
-  echo "	--no-bcache		Exclude block layer cache (bcache) support"
-  echo "	--lvm			Include LVM support"
-  echo "	--no-lvm		Exclude LVM support"
-  echo "	--mdadm			Include MDADM/MDMON support"
-  echo "	--no-mdadm		Exclude MDADM/MDMON support"
-  echo "	--mdadm-config=<file>	Use file as mdadm.conf in initramfs"
+  echo "	--busybox		Include busybox"
+  echo "	--no-busybox		Exclude busybox"
+  echo "	--sandbox		Enable sandbox-ing when building initramfs"
+  echo "	--no-sandbox		Disable sandbox-ing when building initramfs"
   echo "	--microcode-initramfs	Prepend early microcode to initramfs"
   echo "	--no-microcode-initramfs"
   echo "				Don't prepend early microcode to initramfs"
   echo "	--nfs			Include NFS support"
   echo "	--no-nfs		Exclude NFS support"
-  echo "	--dmraid		Include DMRAID support"
-  echo "	--no-dmraid		Exclude DMRAID support"
-  echo "	--e2fsprogs		Include e2fsprogs"
-  echo "	--no-e2fsprogs		Exclude e2fsprogs"
-  echo "	--xfsprogs		Include xfsprogs"
-  echo "	--no-xfsprogs		Exclude xfsprogs"
-  echo "	--zfs			Include ZFS support (enabled by default if rootfs is ZFS)"
-  echo "	--no-zfs		Exclude ZFS support"
-  echo "	--btrfs			Include Btrfs support (enabled by default if rootfs is Btrfs)"
-  echo "	--no-btrfs		Exclude Btrfs support"
-  echo "	--multipath		Include Multipath support"
-  echo "	--no-multipath		Exclude Multipath support"
-  echo "	--iscsi			Include iSCSI support"
-  echo "	--no-iscsi		Exclude iSCSI support"
-  echo "	--sandbox		Enable sandbox-ing when building initramfs"
-  echo "	--no-sandbox		Disable sandbox-ing when building initramfs"
-  echo "	--ssh			Include SSH (dropbear) support"
-  echo "	--no-ssh		Exclude SSH (dropbear) support"
-  echo "	--ssh-authorized-keys-file=<file>"
-  echo "				Specifies a user created authorized_keys file"
-  echo "	--ssh-host-keys=(create|create-from-host|runtime)"
-  echo "				Use host keys from /etc/dropbear, but CREATE (default) new host key(s)"
-  echo "				if missing, CREATE host key(s) FROM current HOST running genkernel"
-  echo "				(not recommended) or don't embed any host key in initramfs and"
-  echo "				generate at RUNTIME (dropbear -R)"
+  echo "	--netboot		Create a self-contained env in the initramfs"
+  echo "	--no-netboot		Exclude netboot env"
+  $(. load_features longusage)
+  echo "	--do-keymap-auto	Forces keymap selection at boot"
+  echo "	--keymap		Enables keymap selection support"
+  echo "	--no-keymap		Disables keymap selection support"
   echo "	--boot-font=(current|<file>|none)"
   echo "				Embed CURRENT active console font from host running genkernel"
   echo "				or specified PSF font file into initramfs and activate early on boot."
@@ -183,20 +151,6 @@ longusage() {
   echo "	--linuxrc=<file>	Specifies a user created linuxrc"
   echo "	--busybox-config=<file>	Specifies a user created busybox config"
   echo "	--genzimage		Make and install kernelz image (PowerPC)"
-  echo "	--luks			Include LUKS support"
-  echo "	--no-luks		Exclude LUKS support"
-  echo "	--gpg			Include GPG-armored LUKS key support"
-  echo "	--no-gpg		Exclude GPG-armored LUKS key support"
-  echo "	--keyctl		Include keyctl support for loading LUKS passphrase into a keyring"
-  echo "	--no-keyctl		Exclude keyctl support for loading LUKS passphrase into a keyring"
-  echo "	--b2sum			Include b2sum"
-  echo "	--no-b2sum		Exclude b2sum"
-  echo "	--busybox		Include busybox"
-  echo "	--no-busybox		Exclude busybox"
-  echo "	--unionfs		Include support for unionfs"
-  echo "	--no-unionfs		Exclude support for unionfs"
-  echo "	--netboot		Create a self-contained env in the initramfs"
-  echo "	--no-netboot		Exclude netboot env"
   echo "	--real-root=<foo>	Specify a default for real_root="
   echo "  Internals"
   echo "	--cachedir=<dir>	Override the default cache location"
@@ -437,6 +391,10 @@ parse_cmdline() {
 			CMD_BOOTDIR="${*#*=}"
 			print_info 3 "CMD_BOOTDIR: ${CMD_BOOTDIR}"
 			;;
+		--real-root=*)
+			CMD_REAL_ROOT="${*#*=}"
+			print_info 3 "CMD_REAL_ROOT: ${CMD_REAL_ROOT}"
+			;;
 		--modprobedir=*)
 			CMD_MODPROBEDIR="${*#*=}"
 			print_info 3 "CMD_MODPROBEDIR: ${CMD_MODPROBEDIR}"
@@ -450,32 +408,11 @@ parse_cmdline() {
 			CMD_KEYMAP=$(parse_optbool "$*")
 			print_info 3 "CMD_KEYMAP: ${CMD_KEYMAP}"
 			;;
-		--bcache|--no-bcache)
-			CMD_BCACHE=$(parse_optbool "$*")
-			print_info 3 "CMD_BCACHE: ${CMD_BCACHE}"
+		--sandbox|--no-sandbox)
+			CMD_SANDBOX=$(parse_optbool "$*")
+			print_info 3 "CMD_SANDBOX: ${CMD_SANDBOX}"
 			;;
-		--lvm|--no-lvm)
-			CMD_LVM=$(parse_optbool "$*")
-			print_info 3 "CMD_LVM: ${CMD_LVM}"
-			;;
-		--lvm2|--no-lvm2)
-			CMD_LVM=$(parse_optbool "$*")
-			print_info 3 "CMD_LVM: ${CMD_LVM}"
-			echo
-			print_warning 1 "Please use --lvm, as --lvm2 is deprecated."
-			;;
-		--mdadm|--no-mdadm)
-			CMD_MDADM=$(parse_optbool "$*")
-			print_info 3 "CMD_MDADM: ${CMD_MDADM}"
-			;;
-		--mdadm-config=*)
-			CMD_MDADM_CONFIG="${*#*=}"
-			print_info 3 "CMD_MDADM_CONFIG: ${CMD_MDADM_CONFIG}"
-			;;
-		--b2sum|--no-b2sum)
-			CMD_B2SUM=$(parse_optbool "$*")
-			print_info 3 "CMD_B2SUM: ${CMD_B2SUM}"
-			;;
+
 		--busybox|--no-busybox)
 			CMD_BUSYBOX=$(parse_optbool "$*")
 			print_info 3 "CMD_BUSYBOX: ${CMD_BUSYBOX}"
@@ -495,50 +432,6 @@ parse_cmdline() {
 			CMD_MICROCODE_INITRAMFS=$(parse_optbool "$*")
 			print_info 3 "CMD_MICROCODE_INITRAMFS: ${CMD_MICROCODE_INITRAMFS}"
 			;;
-		--nfs|--no-nfs)
-			CMD_NFS=$(parse_optbool "$*")
-			print_info 3 "CMD_NFS: ${CMD_NFS}"
-			;;
-		--unionfs|--no-unionfs)
-			CMD_UNIONFS=$(parse_optbool "$*")
-			print_info 3 "CMD_UNIONFS: ${CMD_UNIONFS}"
-			;;
-		--netboot|--no-netboot)
-			CMD_NETBOOT=$(parse_optbool "$*")
-			print_info 3 "CMD_NETBOOT: ${CMD_NETBOOT}"
-			;;
-		--real-root=*)
-			CMD_REAL_ROOT="${*#*=}"
-			print_info 3 "CMD_REAL_ROOT: ${CMD_REAL_ROOT}"
-			;;
-		--dmraid|--no-dmraid)
-			CMD_DMRAID=$(parse_optbool "$*")
-			print_info 3 "CMD_DMRAID: ${CMD_DMRAID}"
-			;;
-		--e2fsprogs|--no-e2fsprogs)
-			CMD_E2FSPROGS=$(parse_optbool "$*")
-			print_info 3 "CMD_E2FSPROGS: ${CMD_E2FSPROGS}"
-			;;
-		--xfsprogs|--no-xfsprogs)
-			CMD_XFSPROGS=$(parse_optbool "$*")
-			print_info 3 "CMD_XFSPROGS: ${CMD_XFSPROGS}"
-			;;
-		--zfs|--no-zfs)
-			CMD_ZFS=$(parse_optbool "$*")
-			print_info 3 "CMD_ZFS: ${CMD_ZFS}"
-			;;
-		--btrfs|--no-btrfs)
-			CMD_BTRFS=$(parse_optbool "$*")
-			print_info 3 "CMD_BTRFS: ${CMD_BTRFS}"
-			;;
-		--virtio|--no-virtio)
-			CMD_VIRTIO=$(parse_optbool "$*")
-			print_info 3 "CMD_VIRTIO: ${CMD_VIRTIO}"
-			;;
-		--multipath|--no-multipath)
-			CMD_MULTIPATH=$(parse_optbool "$*")
-			print_info 3 "CMD_MULTIPATH: ${CMD_MULTIPATH}"
-			;;
 		--boot-font=*)
 			CMD_BOOTFONT="${*#*=}"
 			[ -z "${CMD_BOOTFONT}" ] && CMD_BOOTFONT="none"
@@ -553,38 +446,22 @@ parse_cmdline() {
 			CMD_BOOTLOADER="no"
 			print_info 3 "CMD_BOOTLOADER: ${CMD_BOOTLOADER}"
 			;;
-		--iscsi|--no-iscsi)
-			CMD_ISCSI=$(parse_optbool "$*")
-			print_info 3 "CMD_ISCSI: ${CMD_ISCSI}"
+		$(. load_features.sh parse_cmdline)
+		--nfs|--no-nfs)
+			CMD_NFS=$(parse_optbool "$*")
+			print_info 3 "CMD_NFS: ${CMD_NFS}"
+			;;
+		--netboot|--no-netboot)
+			CMD_NETBOOT=$(parse_optbool "$*")
+			print_info 3 "CMD_NETBOOT: ${CMD_NETBOOT}"
+			;;
+		--virtio|--no-virtio)
+			CMD_VIRTIO=$(parse_optbool "$*")
+			print_info 3 "CMD_VIRTIO: ${CMD_VIRTIO}"
 			;;
 		--hyperv|--no-hyperv)
 			CMD_HYPERV=$(parse_optbool "$*")
 			print_info 3 "CMD_HYPERV: ${CMD_HYPERV}"
-			;;
-		--sandbox|--no-sandbox)
-			CMD_SANDBOX=$(parse_optbool "$*")
-			print_info 3 "CMD_SANDBOX: ${CMD_SANDBOX}"
-			;;
-		--ssh|--no-ssh)
-			CMD_SSH=$(parse_optbool "$*")
-			print_info 3 "CMD_SSH: ${CMD_SSH}"
-			;;
-		--ssh-authorized-keys-file=*)
-			CMD_SSH_AUTHORIZED_KEYS_FILE="${*#*=}"
-			print_info 3 "CMD_SSH_AUTHORIZED_KEYS_FILE: ${CMD_SSH_AUTHORIZED_KEYS_FILE}"
-			;;
-		--ssh-host-keys=*)
-			CMD_SSH_HOST_KEYS="${*#*=}"
-			if ! isTrue "$(is_valid_ssh_host_keys_parameter_value "${CMD_SSH_HOST_KEYS}")"
-			then
-				echo "Error: --ssh-host-keys value '${CMD_SSH_HOST_KEYS}' is unsupported."
-				exit 1
-			fi
-			print_info 3 "CMD_SSH_HOST_KEYS: ${CMD_SSH_HOST_KEYS}"
-			;;
-		--strace|--no-strace)
-			CMD_STRACE=$(parse_optbool "$*")
-			print_info 3 "CMD_STRACE: ${CMD_STRACE}"
 			;;
 		--loglevel=*)
 			CMD_LOGLEVEL="${*#*=}"
@@ -648,53 +525,6 @@ parse_cmdline() {
 			isTrue "${CMD_OLDCONFIG}" && CMD_CLEAN="no"
 			print_info 3 "CMD_CLEAN: ${CMD_CLEAN}"
 			print_info 3 "CMD_OLDCONFIG: ${CMD_OLDCONFIG}"
-			;;
-		--gensplash=*)
-			CMD_SPLASH="yes"
-			SPLASH_THEME="${*#*=}"
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
-			echo
-			print_warning 1 "Please use --splash, as --gensplash is deprecated."
-			;;
-		--gensplash|--no-gensplash)
-			CMD_SPLASH=$(parse_optbool "$*")
-			SPLASH_THEME='default'
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			echo
-			print_warning 1 "Please use --splash, as --gensplash is deprecated."
-			;;
-		--splash=*)
-			CMD_SPLASH="yes"
-			SPLASH_THEME="${*#*=}"
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
-			;;
-		--splash|--no-splash)
-			CMD_SPLASH=$(parse_optbool "$*")
-			SPLASH_THEME='default'
-			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
-			;;
-		--gensplash-res=*)
-			SPLASH_RES="${*#*=}"
-			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
-			echo
-			print_warning 1 "Please use --splash-res, as --gensplash-res is deprecated."
-			;;
-		--splash-res=*)
-			SPLASH_RES="${*#*=}"
-			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
-			;;
-		--plymouth)
-			CMD_PLYMOUTH="yes"
-			PLYMOUTH_THEME='text'
-			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
-			;;
-		--plymouth-theme=*)
-			CMD_PLYMOUTH="yes"
-			PLYMOUTH_THEME="${*#*=}"
-			print_info 3 "CMD_PLYMOUTH: ${CMD_PLYMOUTH}"
-			print_info 3 "PLYMOUTH_THEME: ${PLYMOUTH_THEME}"
 			;;
 		--install|--no-install)
 			CMD_INSTALL=$(parse_optbool "$*")
@@ -854,18 +684,6 @@ parse_cmdline() {
 			print_info 3 "CMD_GENZIMAGE: ${CMD_GENZIMAGE}"
 #			ENABLE_PEGASOS_HACKS="yes"
 #			print_info 3 "ENABLE_PEGASOS_HACKS: ${ENABLE_PEGASOS_HACKS}"
-			;;
-		--luks|--no-luks)
-			CMD_LUKS=$(parse_optbool "$*")
-			print_info 3 "CMD_LUKS: ${CMD_LUKS}"
-			;;
-		--gpg|--no-gpg)
-			CMD_GPG=$(parse_optbool "$*")
-			print_info 3 "CMD_GPG: ${CMD_GPG}"
-			;;
-		--keyctl|--no-keyctl)
-			CMD_KEYCTL=$(parse_optbool "$*")
-			print_info 3 "CMD_KEYCTL: ${CMD_KEYCTL}"
 			;;
 		--firmware|--no-firmware)
 			CMD_FIRMWARE=$(parse_optbool "$*")

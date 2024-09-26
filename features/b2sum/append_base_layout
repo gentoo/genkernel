@@ -1,0 +1,1 @@
+	isTrue "${B2SUM}" && build_parameters+=( --b2sum ) || build_parameters+=( --no-b2sum )

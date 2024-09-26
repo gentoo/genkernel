@@ -1,0 +1,2 @@
+  echo "	--lvm			Include LVM support"
+  echo "	--no-lvm		Exclude LVM support"

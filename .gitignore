@@ -3,3 +3,4 @@
 /genkernel-*.tar.xz
 /ChangeLog
 /arch/*/generated-config
+/build

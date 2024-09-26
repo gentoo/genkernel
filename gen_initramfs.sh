@@ -472,28 +472,10 @@ append_base_layout() {
 	isTrue "${MICROCODE_INITRAMFS}" && build_parameters+=( --microcode-initramfs ) || build_parameters+=( --no-microcode-initramfs )
 	isTrue "${RAMDISKMODULES}" && build_parameters+=( --ramdisk-modules ) || build_parameters+=( --no-ramdisk-modules )
 	isTrue "${BUSYBOX}" && build_parameters+=( --busybox ) || build_parameters+=( --no-busybox )
-	isTrue "${BCACHE}" && build_parameters+=( --bcache ) || build_parameters+=( --no-bcache )
-	isTrue "${B2SUM}" && build_parameters+=( --b2sum ) || build_parameters+=( --no-b2sum )
-	isTrue "${BTRFS}" && build_parameters+=( --btrfs ) || build_parameters+=( --no-btrfs )
-	isTrue "${ISCSI}" && build_parameters+=( --iscsi ) || build_parameters+=( --no-iscsi )
-	isTrue "${MULTIPATH}" && build_parameters+=( --multipath ) || build_parameters+=( --no-multipath )
-	isTrue "${DMRAID}" && build_parameters+=( --dmraid ) || build_parameters+=( --no-dmraid )
-	isTrue "${MDADM}" && build_parameters+=( --mdadm ) || build_parameters+=( --no-mdadm )
-	isTrue "${LVM}" && build_parameters+=( --lvm ) || build_parameters+=( --no-lvm )
-	isTrue "${UNIONFS}" && build_parameters+=( --unionfs ) || build_parameters+=( --no-unionfs )
-	isTrue "${ZFS}" && build_parameters+=( --zfs ) || build_parameters+=( --no-zfs )
-	isTrue "${SPLASH}" && build_parameters+=( --splash ) || build_parameters+=( --no-splash )
-	isTrue "${PLYMOUTH}" && build_parameters+=( --plymouth ) || build_parameters+=( --no-plymouth )
-	isTrue "${STRACE}" && build_parameters+=( --strace ) || build_parameters+=( --no-strace )
-	isTrue "${KEYCTL}" && build_parameters+=( --keyctl ) || build_parameters+=( --no-keyctl )
-	isTrue "${GPG}" && build_parameters+=( --gpg ) || build_parameters+=( --no-gpg )
-	isTrue "${LUKS}" && build_parameters+=( --luks ) || build_parameters+=( --no-luks )
+	$(. load_features append_base_layout)
 	isTrue "${FIRMWARE}" && build_parameters+=( --firmware ) || build_parameters+=( --no-firmware )
 	[ -n "${FIRMWARE_DIR}" ] && build_parameters+=( --firmware-dir="${FIRMWARE_DIR}" )
 	[ -n "${FIRMWARE_FILES}" ] && build_parameters+=( --firmware-files="${FIRMWARE_FILES}" )
-	isTrue "${SSH}" && build_parameters+=( --ssh ) || build_parameters+=( --no-ssh )
-	isTrue "${E2FSPROGS}" && build_parameters+=( --e2fsprogs ) || build_parameters+=( --no-e2fsprogs )
-	isTrue "${XFSPROGS}" && build_parameters+=( --xfsprogs ) || build_parameters+=( --no-xfsprogs )
 
 	echo "${build_parameters[@]}" > "${TDIR}"/lib/dracut/build-parameter.txt \
 		|| gen_die "Failed to create '${TDIR}/lib/dracut/build-parameter.txt'!"
@@ -519,684 +501,8 @@ append_base_layout() {
 	fi
 }
 
-append_busybox() {
-	local PN=busybox
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	# Delete unneeded files
-	rm -rf configs/
-
-	mkdir -p "${TDIR}"/usr/share/udhcpc || gen_die "Failed to create '${TDIR}/usr/share/udhcpc'!"
-
-	cp -a "${GK_SHARE}"/defaults/udhcpc.scripts usr/share/udhcpc/default.script 2>/dev/null \
-		|| gen_die "Failed to copy '${GK_SHARE}/defaults/udhcpc.scripts' to '${TDIR}/usr/share/udhcpc/default.script'!"
-
-	local myfile=
-	for myfile in \
-		bin/busybox \
-		usr/share/udhcpc/default.script \
-	; do
-		chmod +x "${TDIR}"/${myfile} || gen_die "Failed to chmod of '${TDIR}/${myfile}'!"
-	done
-
-	# Set up a few default symlinks
-	local required_applets='[ ash sh mkdir mknod mount uname echo chmod cut cat touch'
-	local required_applet=
-	for required_applet in ${required_applets}
-	do
-		ln -s busybox "${TDIR}"/bin/${required_applet} \
-			|| gen_die "Failed to create Busybox symlink for '${required_applet}' applet!"
-	done
-
-	# allow for DNS resolution
-	if isTrue "$(is_glibc)"
-	then
-		local libdir=$(get_chost_libdir)
-		local libnss_dns="${libdir}/libnss_dns.so"
-
-		# NSS dns module was moved into libc in >=glibc-2.34
-		# but when this file exists we are probably dealing with older glibc
-		# and need to manually copy the module.
-		if [[ -f "${libnss_dns}" ]]
-		then
-			mkdir -p "${TDIR}"/lib || gen_die "Failed to create '${TDIR}/lib'!"
-			copy_system_binaries "${TDIR}"/lib "${libnss_dns}"
-		fi
-	fi
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_e2fsprogs() {
-	local PN=e2fsprogs
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_eudev() {
-	local PN=eudev
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-	populate_binpkg hwids
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-	unpack "$(get_gkpkg_binpkg hwids)" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	if isTrue "$(can_run_programs_compiled_by_genkernel)"
-	then
-		print_info 2 "$(get_indent 2)${PN}: >> Pre-generating initramfs' /etc/udev/hwdb.bin ..."
-
-		local gen_hwdb_cmd=( "${TDIR}/usr/bin/udevadm" )
-		gen_hwdb_cmd+=( hwdb --update --root "${TDIR}" )
-		print_info 3 "COMMAND: ${gen_hwdb_cmd[*]}" 1 0 1
-		eval "${gen_hwdb_cmd[@]}" 2>&1 | tee -a "${LOGFILE}" \
-			|| gen_die "Failed to pre-generate initramfs' /etc/udev/hwdb.bin!"
-
-		# Now that we have a pre-generated hwdb in initramfs
-		# we can delete source files
-		rm -rf usr/lib/udev/hwdb.d/
-	fi
-
-	# Delete unneeded files
-	rm -rf usr/include \
-		usr/lib/libu* \
-		usr/lib/pkgconfig \
-		usr/share
-
-	# Disable predictable network interface names in initramfs
-	echo "" > usr/lib/udev/rules.d/80-net-name-slot.rules \
-		|| gen_die "Failed to disable predictable network interface naming rule"
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_b2sum() {
-	local PN="coreutils"
-	local TDIR="${TEMP}/initramfs-b2sum-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append b2sum to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_bcache() {
-	local PN="bcache-tools"
-	local TDIR="${TEMP}/initramfs-bcache-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append bcache to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_unionfs_fuse() {
-	local PN=unionfs-fuse
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_util-linux() {
-	local PN="util-linux"
-	local TDIR="${TEMP}/initramfs-util-linux-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	# Delete unneeded files
-	rm -rf usr/
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_multipath() {
-	local PN=multipath-tools
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	mkdir -p "${TDIR}"/etc || gen_die "Failed to create '${TDIR}/etc'!"
-
-	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
-
-	local libdir=$(get_chost_libdir)
-	if [[ "${libdir}" =~ ^/usr ]]
-	then
-		libdir=${libdir/\/usr/}
-	fi
-
-	copy_binaries \
-		"${TDIR}" \
-		/sbin/multipath \
-		/sbin/kpartx \
-		/sbin/mpathpersist \
-		${libdir}/multipath/lib*.so
-
-	local udevdir=$(get_udevdir)
-	local udevdir_initramfs="/usr/lib/udev"
-	local udev_files=( $(qlist -eC sys-fs/multipath-tools:0 \
-		| grep -E -- "^${udevdir}")
-	)
-
-	if [ ${#udev_files[@]} -eq 0 ]
-	then
-		gen_die "Something went wrong: Did not found any udev-related files for sys-fs/multipath-tools!"
-	fi
-
-	local udev_files
-	for udev_file in "${udev_files[@]}"
-	do
-		local dest_file="${TDIR%/}${udev_file/${udevdir}/${udevdir_initramfs}}"
-		cp -aL "${udev_file}" "${dest_file}" \
-			|| gen_die "Failed to copy '${udev_file}' to '${dest_file}'"
-	done
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	cp -aL /etc/multipath.conf "${TDIR}"/etc/multipath.conf 2>/dev/null \
-		|| gen_die "Failed to copy '/etc/multipath.conf'!"
-
-	# /etc/scsi_id.config does not exist in newer udevs
-	# copy it optionally.
-	if [ -f /etc/scsi_id.config ]
-	then
-		cp -aL /etc/scsi_id.config "${TDIR}"/etc/scsi_id.config 2>/dev/null \
-			|| gen_die "Failed to copy '/etc/scsi_id.config'!"
-	fi
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_dmraid() {
-	local PN=dmraid
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	# Delete unneeded files
-	rm -rf \
-		usr/lib \
-		usr/share \
-		usr/include
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append dmraid to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_iscsi() {
-	local PN=open-iscsi
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append iscsi to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_keyutils() {
-	local PN=keyutils
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_lvm() {
-	local PN=lvm
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-	populate_binpkg thin-provisioning-tools
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-	unpack "$(get_gkpkg_binpkg "thin-provisioning-tools")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	local mydir=
-	for mydir in \
-		etc/lvm/cache \
-		sbin \
-	; do
-		mkdir -p ${mydir} || gen_die "Failed to create '${TDIR}/${mydir}'!"
-	done
-
-	# Delete unneeded files
-	rm -rf \
-		usr/lib/device-mapper \
-		usr/lib/pkgconfig \
-		usr/lib/lib* \
-		usr/sbin/dm* \
-		usr/share \
-		usr/include
-
-	# Include the LVM config
-	if [ -x /sbin/lvm -o -x /bin/lvm ]
-	then
-		local ABORT_ON_ERRORS=$(kconfig_get_opt "/etc/lvm/lvm.conf" "abort_on_errors")
-		if isTrue "${ABORT_ON_ERRORS}" && [[ ${CBUILD} == ${CHOST} ]]
-		then
-			# Make sure the LVM binary we created is able to handle
-			# system's lvm.conf
-			"${TDIR}"/sbin/lvm dumpconfig 1>"${TDIR}"/etc/lvm/lvm.conf 2>/dev/null \
-				|| gen_die "Bundled LVM version does NOT support system's lvm.conf!"
-
-			# Sanity check
-			if [ ! -s "${TDIR}/etc/lvm/lvm.conf" ]
-			then
-				gen_die "Sanity check failed: '${TDIR}/etc/lvm/lvm.conf' looks empty?!"
-			fi
-		else
-			cp -aL /etc/lvm/lvm.conf "${TDIR}"/etc/lvm/lvm.conf 2>/dev/null \
-				|| gen_die "Failed to copy '/etc/lvm/lvm.conf'!"
-		fi
-
-		# Some LVM config options need changing, because the functionality is
-		# not compiled in:
-		sed -r -i \
-			-e '/^[[:space:]]*obtain_device_list_from_udev/s,=.*,= 1,g' \
-			-e '/^[[:space:]]*udev_sync/s,=.*,= 1,g' \
-			-e '/^[[:space:]]*use_lvmetad/s,=.*,= 0,g' \
-			-e '/^[[:space:]]*use_lvmlockd/s,=.*,= 0,g' \
-			-e '/^[[:space:]]*use_lvmpolld/s,=.*,= 0,g' \
-			-e '/^[[:space:]]*monitoring/s,=.*,= 0,g' \
-			-e '/^[[:space:]]*external_device_info_source/s,=.*,= "none",g' \
-			-e '/^[[:space:]]*units/s,=.*"r",= "h",g' \
-			-e '/^[[:space:]]*thin_repair_executable/s,=.*,= /usr/sbin/thin_repair,g' \
-			-e '/^[[:space:]]*thin_dump_executable/s,=.*,= /usr/sbin/thin_dump,g' \
-			-e '/^[[:space:]]*thin_check_executable/s,=.*,= /usr/sbin/thin_check,g' \
-			"${TDIR}"/etc/lvm/lvm.conf \
-				|| gen_die 'Could not sed lvm.conf!'
-	fi
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append lvm to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_mdadm() {
-	local PN=mdadm
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	local mydir=
-	for mydir in \
-		etc \
-		sbin \
-	; do
-		mkdir -p "${TDIR}"/${mydir} || gen_die "Failed to create '${TDIR}/${mydir}'!"
-	done
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	if [ -n "${MDADM_CONFIG}" ]
-	then
-		print_info 2 "$(get_indent 2)${PN}: >> Adding '${MDADM_CONFIG}' ..."
-
-		if [ -f "${MDADM_CONFIG}" ]
-		then
-			cp -aL "${MDADM_CONFIG}" "${TDIR}"/etc/mdadm.conf 2>/dev/null \
-				|| gen_die "Failed to copy '${MDADM_CONFIG}'!"
-		else
-			gen_die "Specified '${MDADM_CONFIG}' does not exist!"
-		fi
-	else
-		print_info 2 "$(get_indent 2)${PN}: >> --mdadm-config not set; Skipping inclusion of mdadm.conf ..."
-	fi
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_xfsprogs() {
-	local PN=xfsprogs
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_zfs() {
-	local PN=zfs
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	mkdir -p "${TDIR}"/etc/zfs || gen_die "Failed to create '${TDIR}/etc/zfs'!"
-
-	# Copy files to /etc/zfs
-	local i
-	for i in vdev_id.conf zdev.conf zpool.cache
-	do
-		if [ -f /etc/zfs/${i} ]
-		then
-			print_info 2 "$(get_indent 2)${PN}: >> Including ${i}"
-			cp -aL "/etc/zfs/${i}" "${TDIR}/etc/zfs/${i}" 2>/dev/null \
-				|| gen_die "Could not copy file '/etc/zfs/${i}' for ZFS"
-		fi
-	done
-
-	if [ -f "/etc/hostid" ]
-	then
-		local _hostid=$(hostid 2>/dev/null)
-		print_info 2 "$(get_indent 2)${PN}: >> Embedding hostid '${_hostid}' into initramfs ..."
-		cp -aL /etc/hostid "${TDIR}"/etc/hostid 2>/dev/null \
-			|| gen_die "Failed to copy /etc/hostid"
-
-		echo "${_hostid}" > "${TEMP}"/.embedded_hostid \
-			|| gen_die "Failed to record system's hostid!"
-	else
-		print_warning 1 "$(get_indent 2)${PN}: /etc/hostid not found; You must use 'spl_hostid' kernel command-line parameter!"
-	fi
-
-	copy_binaries "${TDIR}" /sbin/{mount.zfs,zdb,zfs,zpool}
-
-	local udevdir=$(get_udevdir)
-	local udevdir_initramfs="/usr/lib/udev"
-	local udev_files=( $(qlist -eC sys-fs/zfs:0 \
-		| grep -E -- "^${udevdir}")
-	)
-
-	if [ ${#udev_files[@]} -eq 0 ]
-	then
-		gen_die "Something went wrong: Did not found any udev-related files for sys-fs/zfs!"
-	fi
-
-	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
-
-	local udev_files
-	for udev_file in "${udev_files[@]}"
-	do
-		local dest_file="${TDIR%/}${udev_file/${udevdir}/${udevdir_initramfs}}"
-		cp -aL "${udev_file}" "${dest_file}" \
-			|| gen_die "Failed to copy '${udev_file}' to '${dest_file}'"
-
-		if [[ "${dest_file}" == *.rules ]]
-		then
-			print_info 5 "Updating UDEV dir in '${dest_file}' ..."
-			sed -i \
-				-e "s|${udevdir}|${udevdir_initramfs}|g" \
-				"${dest_file}" \
-				|| gen_die "Failed to update UDEV dir in '${dest_file}'"
-		fi
-	done
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_btrfs() {
-	local PN=btrfs-progs
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
+#BEGIN FEATURES initramfs_append_func
+#END FEATURES initramfs_append_func
 
 append_libgcc_s() {
 	local TDIR="${TEMP}/initramfs-libgcc_s-temp"
@@ -1277,571 +583,6 @@ append_linker() {
 	log_future_cpio_content
 	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
 		|| gen_die "Failed to append linker to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_splash() {
-	local TDIR="${TEMP}/initramfs-splash-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	if [ -z "${SPLASH_THEME}" -a -e /etc/conf.d/splash ]
-	then
-		source /etc/conf.d/splash &>/dev/null || gen_die "Failed to source '/etc/conf.d/splash'!"
-	fi
-
-	if [ -z "${SPLASH_THEME}" ]
-	then
-		SPLASH_THEME=default
-	fi
-
-	print_info 1 "$(get_indent 1)>> Installing splash [ using the ${SPLASH_THEME} theme ] ..."
-
-	local res_param=""
-	[ -n "${SPLASH_RES}" ] && res_param="-r ${SPLASH_RES}"
-	splash_geninitramfs -c "${TDIR}" ${res_param} ${SPLASH_THEME} \
-		|| gen_die "Failed to build splash cpio archive"
-
-	if [ -e "/usr/share/splashutils/initrd.splash" ]
-	then
-		mkdir -p "${TDIR}"/etc || gen_die "Failed to create '${TDIR}/etc'!"
-		cp -f /usr/share/splashutils/initrd.splash "${TDIR}"/etc/ 2>/dev/null \
-			gen_die "Failed to copy '/usr/share/splashutils/initrd.splash'!"
-	fi
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append splash to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_plymouth() {
-	local PN=plymouth
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	# set plymouth theme
-	if [ -n "${PLYMOUTH_THEME}" ]
-	then
-		plymouth-set-default-theme ${PLYMOUTH_THEME} || gen_die "Failed to set default plymouth theme!"
-	fi
-	if [ -z "${PLYMOUTH_THEME}" -a -e /etc/plymouth/plymouthd.conf ]
-	then
-		PLYMOUTH_THEME=$(plymouth-set-default-theme) || gen_die "Failed to set default plymouth theme!"
-	fi
-	if [ -z "${PLYMOUTH_THEME}" ]
-	then
-		PLYMOUTH_THEME=text
-	fi
-
-	print_info 1 "$(get_indent 1)>> Installing plymouth [ using the '${PLYMOUTH_THEME}' theme ]..."
-
-	/usr/libexec/plymouth/plymouth-populate-initrd -t "${TDIR}" \
-		|| gen_die "Failed to build plymouth cpio archive!"
-
-	# can probably get rid of this; depends if plymouth was built with static libs
-	# rm -f "${TDIR}"/lib*/{ld*,libc*,libz*} \
-		# || gen_die "Failed to clean up plymouth cpio archive!"
-
-	ln -sf "${PLYMOUTH_THEME}/${PLYMOUTH_THEME}.plymouth" "${TDIR}/usr/share/plymouth/themes/default.plymouth" \
-		|| gen_die "Failed to set the default plymouth theme!"
-
-	# include required udev rules
-	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
-	cp -aL /lib/udev/rules.d/70-uaccess.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '70-uaccess.rules'!"
-	cp -aL /lib/udev/rules.d/71-seat.rules "${TDIR}/usr/lib/udev/rules.d" || gen_die "Failed to copy '71-seat.rules'!"
-
-	# clean up
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_strace() {
-	local PN=strace
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_overlay() {
-	cd "${INITRAMFS_OVERLAY}"  || gen_die "Failed to chdir to '${INITRAMFS_OVERLAY}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append overlay to cpio!"
-}
-
-append_luks() {
-	local PN=cryptsetup
-	local TDIR="${TEMP}/initramfs-luks-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	# Delete unneeded files
-	rm -rf usr/
-
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append luks to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_dropbear() {
-	local PN=dropbear
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	local dropbear_command=
-	if ! isTrue "$(is_valid_ssh_host_keys_parameter_value "${SSH_HOST_KEYS}")"
-	then
-		gen_die "--ssh-host-keys value '${SSH_HOST_KEYS}' is unsupported!"
-	elif [[ "${SSH_HOST_KEYS}" == 'create' ]]
-	then
-		dropbear_command=dropbearkey
-	else
-		dropbear_command=dropbearconvert
-	fi
-
-	if [ -z "${DROPBEAR_AUTHORIZED_KEYS_FILE}" ]
-	then
-		gen_die "Something went wrong: DROPBEAR_AUTHORIZED_KEYS_FILE should already been set but is missing!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	if [[ "${SSH_HOST_KEYS}" == 'runtime' ]]
-	then
-		print_info 2 "$(get_indent 2)${PN}: >> No SSH host key embedded due to --ssh-host-key=runtime; Dropbear will generate required host key(s) at runtime!"
-	else
-		if ! hash ssh-keygen &>/dev/null
-		then
-			gen_die "'ssh-keygen' program is required but missing!"
-		fi
-
-		local initramfs_dropbear_dir="${TDIR}/etc/dropbear"
-
-		if [[ "${SSH_HOST_KEYS}" == 'create-from-host' ]]
-		then
-			print_info 3 "$(get_indent 2)${PN}: >> Checking for existence of all SSH host keys ..."
-			local missing_ssh_host_keys=no
-
-			if [ ! -f "/etc/ssh/ssh_host_rsa_key" ]
-			then
-				print_info 3 "$(get_indent 2)${PN}: >> SSH host key '/etc/ssh/ssh_host_rsa_key' is missing!"
-				missing_ssh_host_keys=yes
-			fi
-
-			if [ ! -f "/etc/ssh/ssh_host_ecdsa_key" ]
-			then
-				print_info 3 "$(get_indent 2)${PN}: >> SSH host key '/etc/ssh/ssh_host_ecdsa_key' is missing!"
-				missing_ssh_host_keys=yes
-			fi
-
-			if [ ! -f "/etc/ssh/ssh_host_ed25519_key" ]
-			then
-				print_info 3 "$(get_indent 2)${PN}: >> SSH host key '/etc/ssh/ssh_host_ed25519_key' is missing!"
-				missing_ssh_host_keys=yes
-			fi
-
-			if isTrue "${missing_ssh_host_keys}"
-			then
-				# Should only happen when installing a new system ...
-				print_info 3 "$(get_indent 2)${PN}: >> Creating missing SSH host key(s) ..."
-				ssh-keygen -A || gen_die "Failed to generate host's SSH host key(s) using 'ssh-keygen -A'!"
-			fi
-		fi
-
-		local -a required_dropbear_host_keys=(
-			/etc/dropbear/dropbear_ecdsa_host_key
-			/etc/dropbear/dropbear_ed25519_host_key
-			/etc/dropbear/dropbear_rsa_host_key
-		)
-
-		local i=0
-		local n_required_dropbear_keys=${#required_dropbear_host_keys[@]}
-		local required_key=
-		while [[ ${i} < ${n_required_dropbear_keys} ]]
-		do
-			required_key=${required_dropbear_host_keys[${i}]}
-			print_info 3 "$(get_indent 2)${PN}: >> Checking for existence of dropbear host key '${required_key}' ..."
-			if [[ -f "${required_key}" ]]
-			then
-				if [[ ! -s "${required_key}" ]]
-				then
-					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is empty; Removing ..."
-					rm "${required_key}" || gen_die "Failed to remove invalid '${required_key}' null byte file!"
-				elif [[ "${SSH_HOST_KEYS}" == 'create-from-host' ]] \
-					&& [[ "${required_key}" == *_rsa_* ]] \
-					&& [[ "${required_key}" -ot "/etc/ssh/ssh_host_rsa_key" ]]
-				then
-					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is older than '/etc/ssh/ssh_host_rsa_key'; Removing to force update due to --ssh-host-key=create-from-host ..."
-					rm "${required_key}" || gen_die "Failed to remove outdated '${required_key}' file!"
-				elif [[ "${SSH_HOST_KEYS}" == 'create-from-host' ]] \
-					&& [[ "${required_key}" == *_ecdsa_* ]] \
-					&& [[ "${required_key}" -ot "/etc/ssh/ssh_host_ecdsa_key" ]]
-				then
-					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is older than '/etc/ssh/ssh_host_ecdsa_key'; Removing to force update due to --ssh-host-key=create-from-host ..."
-					rm "${required_key}" || gen_die "Failed to remove outdated '${required_key}' file!"
-				elif [[ "${SSH_HOST_KEYS}" == 'create-from-host' ]] \
-					&& [[ "${required_key}" == *_ed25519_* ]] \
-					&& [[ "${required_key}" -ot "/etc/ssh/ssh_host_ed25519_key" ]]
-				then
-					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is older than '/etc/ssh/ssh_host_ed25519_key'; Removing to force update due to --ssh-host-key=create-from-host ..."
-					rm "${required_key}" || gen_die "Failed to remove outdated '${required_key}' file!"
-				else
-					print_info 3 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists!"
-					unset required_dropbear_host_keys[${i}]
-				fi
-			else
-				print_info 3 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' is missing! Will create ..."
-			fi
-
-			i=$((i + 1))
-		done
-
-		if [[ ${#required_dropbear_host_keys[@]} -gt 0 ]]
-		then
-			if isTrue "$(can_run_programs_compiled_by_genkernel)"
-			then
-				dropbear_command="${TDIR}/usr/bin/${dropbear_command}"
-				print_info 3 "$(get_indent 2)${PN}: >> Will use '${dropbear_command}' to create missing keys ..."
-			elif hash ${dropbear_command} &>/dev/null
-			then
-				print_info 3 "$(get_indent 2)${PN}: >> Will use existing '${dropbear_command}' program from path to create missing keys ..."
-			else
-				local error_msg="Need to generate '${required_dropbear_host_keys[*]}' but '${dropbear_command}'"
-				error_msg+=" program is missing. Please install net-misc/dropbear and re-run genkernel!"
-				gen_die "${error_msg}"
-			fi
-
-			local missing_key=
-			for missing_key in ${required_dropbear_host_keys[@]}
-			do
-				dropbear_create_key "${missing_key}" "${dropbear_command}"
-
-				# just in case ...
-				if [ -f "${missing_key}" ]
-				then
-					print_info 3 "$(get_indent 2)${PN}: >> Dropbear host key '${missing_key}' successfully created!"
-				else
-					gen_die "Sanity check failed: '${missing_key}' should exist at this stage but does NOT."
-				fi
-			done
-		else
-			print_info 2 "$(get_indent 2)${PN}: >> Using existing dropbear host keys from /etc/dropbear ..."
-		fi
-
-		cp -aL --target-directory "${initramfs_dropbear_dir}" /etc/dropbear/dropbear_{rsa,ecdsa,ed25519}_host_key \
-			|| gen_die "Failed to copy '/etc/dropbear/dropbear_{rsa,ecdsa,ed25519}_host_key'"
-
-		# Try to show embedded dropbear host key details for security reasons.
-		# We do it that complicated to get common used formats.
-		local -a key_info_files=()
-		local -a missing_key_info_files=()
-
-		local host_key_file= host_key_file_checksum= host_key_info_file=
-		while IFS= read -r -u 3 -d $'\0' host_key_file
-		do
-			host_key_file_checksum=$(sha256sum "${host_key_file}" 2>/dev/null | awk '{print $1}')
-			if [ -z "${host_key_file_checksum}" ]
-			then
-				gen_die "Failed to generate SHA256 checksum of '${host_key_file}'!"
-			fi
-
-			host_key_info_file="${GK_V_CACHEDIR}/$(basename "${host_key_file}").${host_key_file_checksum:0:10}.info"
-
-			if [ ! -s "${host_key_info_file}" ]
-			then
-				missing_key_info_files+=( ${host_key_info_file} )
-			else
-				key_info_files+=( ${host_key_info_file} )
-			fi
-		done 3< <(find "${initramfs_dropbear_dir}" -type f -name '*_key' -print0 2>/dev/null)
-		unset host_key_file host_key_file_checksum host_key_info_file
-		IFS="${GK_DEFAULT_IFS}"
-
-		if [[ ${#missing_key_info_files[@]} -ne 0 ]]
-		then
-			dropbear_command=
-			if isTrue "$(can_run_programs_compiled_by_genkernel)"
-			then
-				dropbear_command="${TDIR}/usr/bin/dropbearconvert"
-				print_info 3 "$(get_indent 2)${PN}: >> Will use '${dropbear_command}' to extract embedded host key information ..."
-			elif hash dropbearconvert &>/dev/null
-			then
-				dropbear_command=dropbearconvert
-				print_info 3 "$(get_indent 2)${PN}: >> Will use existing '${dropbear_command}' program to extract embedded host key information ..."
-			else
-				print_warning 2 "$(get_indent 2)${PN}: >> 'dropbearconvert' program not available; Cannot generate missing key information for ${#missing_key_info_files[@]} key(s)!"
-			fi
-
-			if [[ -n "${dropbear_command}" ]]
-			then
-				# We are missing at least information for one embedded key
-				# but looks like we are able to generate the missing information ...
-				local missing_key_info_file=
-				for missing_key_info_file in "${missing_key_info_files[@]}"
-				do
-					dropbear_generate_key_info_file "${dropbear_command}" "${missing_key_info_file}" "${initramfs_dropbear_dir}"
-					key_info_files+=( ${missing_key_info_file} )
-				done
-				unset missing_key_info_file
-			fi
-		fi
-
-		if [[ ${#key_info_files[@]} -gt 0 ]]
-		then
-			# We have at least information about one embedded key ...
-			print_info 1 "=================================================================" 1 0 1
-			print_info 1 "This initramfs' sshd will use the following host key(s):" 1 0 1
-
-			local key_info_file=
-			for key_info_file in "${key_info_files[@]}"
-			do
-				print_info 1 "$(cat "${key_info_file}")" 1 0 1
-			done
-			unset key_info_file
-
-			if [ ${LOGLEVEL} -lt 3 ]
-			then
-				# Don't clash with output from log_future_cpio_content
-				print_info 1 "=================================================================" 1 0 1
-			fi
-		else
-			print_warning 2 "$(get_indent 2)${PN}: >> No information about embedded SSH host key(s) available."
-		fi
-	fi
-
-	if isTrue "$(is_glibc)"
-	then
-		local libdir=$(get_chost_libdir)
-		local libnss_files="${libdir}/libnss_files.so"
-
-		# NSS files module was moved into libc in >=glibc-2.34
-		# but when this file exists we are probably dealing with older glibc
-		# and need to manually copy the module.
-		if [[ -f "${libnss_files}" ]]
-		then
-			mkdir -p "${TDIR}"/lib || gen_die "Failed to create '${TDIR}/lib'!"
-			copy_system_binaries "${TDIR}"/lib "${libnss_files}"
-		fi
-	fi
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	cp -a "${GK_SHARE}"/defaults/login-remote.sh "${TDIR}"/usr/bin/ \
-		|| gen_die "Failed to copy '${GK_SHARE}/defaults/login-remote.sh'"
-
-	cp -a "${GK_SHARE}"/defaults/resume-boot.sh "${TDIR}"/usr/sbin/resume-boot \
-		|| gen_die "Failed to copy '${GK_SHARE}/defaults/resume-boot.sh' to '${TDIR}/usr/sbin/resume-boot'"
-
-	cp -a "${GK_SHARE}"/defaults/unlock-luks.sh "${TDIR}"/usr/sbin/unlock-luks \
-		|| gen_die "Failed to copy '${GK_SHARE}/defaults/unlock-luks.sh' to '${TDIR}/usr/sbin/unlock-luks'"
-
-	cp -a "${GK_SHARE}"/defaults/unlock-zfs.sh "${TDIR}"/usr/sbin/unlock-zfs \
-		|| gen_die "Failed to copy '${GK_SHARE}/defaults/unlock-zfs.sh' to '${TDIR}/usr/sbin/unlock-zfs'"
-
-	cp -aL "${DROPBEAR_AUTHORIZED_KEYS_FILE}" "${TDIR}"/root/.ssh/ \
-		|| gen_die "Failed to copy '${DROPBEAR_AUTHORIZED_KEYS_FILE}'!"
-
-	cp -aL /etc/localtime "${TDIR}"/etc/ \
-		|| gen_die "Failed to copy '/etc/localtime'. Please set system's timezone!"
-
-
-	echo "/usr/bin/login-remote.sh" > "${TDIR}"/etc/shells \
-		|| gen_die "Failed to create '/etc/shells'!"
-
-	chmod 0755 "${TDIR}"/usr/bin/login-remote.sh \
-		|| gen_die "Failed to chmod of '${TDIR}/usr/bin/login-remote.sh'!"
-
-	chmod 0755 "${TDIR}"/usr/sbin/resume-boot \
-		|| gen_die "Failed to chmod of '${TDIR}/usr/sbin/resume-boot'!"
-
-	chmod 0755 "${TDIR}"/usr/sbin/unlock-luks \
-		|| gen_die "Failed to chmod of '${TDIR}/usr/sbin/unlock-luks'!"
-
-	chmod 0755 "${TDIR}"/usr/sbin/unlock-zfs \
-		|| gen_die "Failed to chmod of '${TDIR}/usr/sbin/unlock-zfs'!"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_firmware() {
-	local TDIR="${TEMP}/initramfs-firmware-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-
-	if [ ! -d "${FIRMWARE_DIR}" ]
-	then
-		gen_die "Specified firmware directory '${FIRMWARE_DIR}' does not exist!"
-	fi
-
-	mkdir -p "${TDIR}"/lib/firmware || gen_die "Failed to create '${TDIR}/lib/firmware'!"
-
-	local -a fwlist=()
-
-	if isTrue "${ALLFIRMWARE}"
-	then
-		cp -a "${FIRMWARE_DIR}"/* "${TDIR}"/lib/firmware/ 2>/dev/null \
-			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
-	elif [ ${#FIRMWARE_FILES[@]} -gt 0 ]
-	then
-		fwlist=( "${FIRMWARE_FILES[@]}" )
-	else
-		local myfw=
-		local -a myfw_f=()
-		while IFS= read -r -u 3 myfw
-		do
-			if [ -z "${myfw}" ]
-			then
-				gen_die "modinfo error!"
-			fi
-
-			myfw_f=( $(compgen -G "${FIRMWARE_DIR}/${myfw}*") )
-
-			if [ ${#myfw_f[@]} -gt 1 ]
-			then
-				gen_die "excessive number of firmwares!"
-			fi
-
-			if [ ${#myfw_f[@]} -lt 1 ]
-			then
-				print_warning 3 "$(get_indent 3) - ${myfw} is missing; Ignoring ..."
-				continue
-			fi
-
-			fwlist+=( "${myfw_f#${FIRMWARE_DIR}/}" )
-		done 3< <( (
-			modinfo -b "${KERNEL_MODULES_PREFIX%/}" -k "${KV}" -F firmware $(mod_dep_list) 2>/dev/null || echo
-		) | sort | uniq )
-	fi
-
-	if [ ${#fwlist[@]} -gt 0 ]
-	then
-		pushd "${FIRMWARE_DIR}" &>/dev/null || gen_die "Failed to chdir to '${FIRMWARE_DIR}'!"
-		cp -rL --parents --target-directory="${TDIR}/lib/firmware" "${fwlist[@]}" 2>/dev/null \
-			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
-		popd &>/dev/null || gen_die "Failed to chdir!"
-
-		pushd "${TDIR}/lib/firmware" &>/dev/null || gen_die "Failed to chdir to '${TDIR}/lib/firmware'!"
-		find_and_unpack xz zstd
-		popd &>/dev/null || gen_die "Failed to chdir!"
-	fi
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append firmware to cpio!"
-
-	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
-	if isTrue "${CLEANUP}"
-	then
-		rm -rf "${TDIR}"
-	fi
-}
-
-append_gpg() {
-	local PN=gnupg
-	local TDIR="${TEMP}/initramfs-${PN}-temp"
-	if [ -d "${TDIR}" ]
-	then
-		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
-	fi
-
-	populate_binpkg ${PN}
-
-	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
-
-	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
-
-	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
-	log_future_cpio_content
-	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
-		|| gen_die "Failed to append ${PN} to cpio!"
 
 	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
 	if isTrue "${CLEANUP}"
@@ -2141,6 +882,74 @@ append_auxiliary() {
 	fi
 }
 
+append_busybox() {
+	local PN=busybox
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	# Delete unneeded files
+	rm -rf configs/
+
+	mkdir -p "${TDIR}"/usr/share/udhcpc || gen_die "Failed to create '${TDIR}/usr/share/udhcpc'!"
+
+	cp -a "${GK_SHARE}"/defaults/udhcpc.scripts usr/share/udhcpc/default.script 2>/dev/null \
+		|| gen_die "Failed to copy '${GK_SHARE}/defaults/udhcpc.scripts' to '${TDIR}/usr/share/udhcpc/default.script'!"
+
+	local myfile=
+	for myfile in \
+		bin/busybox \
+		usr/share/udhcpc/default.script \
+	; do
+		chmod +x "${TDIR}"/${myfile} || gen_die "Failed to chmod of '${TDIR}/${myfile}'!"
+	done
+
+	# Set up a few default symlinks
+	local required_applets='[ ash sh mkdir mknod mount uname echo chmod cut cat touch'
+	local required_applet=
+	for required_applet in ${required_applets}
+	do
+		ln -s busybox "${TDIR}"/bin/${required_applet} \
+			|| gen_die "Failed to create Busybox symlink for '${required_applet}' applet!"
+	done
+
+	# allow for DNS resolution
+	if isTrue "$(is_glibc)"
+	then
+		local libdir=$(get_chost_libdir)
+		local libnss_dns="${libdir}/libnss_dns.so"
+
+		# NSS dns module was moved into libc in >=glibc-2.34
+		# but when this file exists we are probably dealing with older glibc
+		# and need to manually copy the module.
+		if [[ -f "${libnss_dns}" ]]
+		then
+			mkdir -p "${TDIR}"/lib || gen_die "Failed to create '${TDIR}/lib'!"
+			copy_system_binaries "${TDIR}"/lib "${libnss_dns}"
+		fi
+	fi
+
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
 append_data() {
 	[ $# -eq 0 ] && gen_die "append_data() called with zero arguments"
 
@@ -2156,6 +965,176 @@ append_data() {
 	fi
 }
 
+append_eudev() {
+	local PN=eudev
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+	populate_binpkg hwids
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+	unpack "$(get_gkpkg_binpkg hwids)" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	if isTrue "$(can_run_programs_compiled_by_genkernel)"
+	then
+		print_info 2 "$(get_indent 2)${PN}: >> Pre-generating initramfs' /etc/udev/hwdb.bin ..."
+
+		local gen_hwdb_cmd=( "${TDIR}/usr/bin/udevadm" )
+		gen_hwdb_cmd+=( hwdb --update --root "${TDIR}" )
+		print_info 3 "COMMAND: ${gen_hwdb_cmd[*]}" 1 0 1
+		eval "${gen_hwdb_cmd[@]}" 2>&1 | tee -a "${LOGFILE}" \
+			|| gen_die "Failed to pre-generate initramfs' /etc/udev/hwdb.bin!"
+
+		# Now that we have a pre-generated hwdb in initramfs
+		# we can delete source files
+		rm -rf usr/lib/udev/hwdb.d/
+	fi
+
+	# Delete unneeded files
+	rm -rf usr/include \
+		usr/lib/libu* \
+		usr/lib/pkgconfig \
+		usr/share
+
+	# Disable predictable network interface names in initramfs
+	echo "" > usr/lib/udev/rules.d/80-net-name-slot.rules \
+		|| gen_die "Failed to disable predictable network interface naming rule"
+
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
+append_firmware() {
+	local TDIR="${TEMP}/initramfs-firmware-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	if [ ! -d "${FIRMWARE_DIR}" ]
+	then
+		gen_die "Specified firmware directory '${FIRMWARE_DIR}' does not exist!"
+	fi
+
+	mkdir -p "${TDIR}"/lib/firmware || gen_die "Failed to create '${TDIR}/lib/firmware'!"
+
+	local -a fwlist=()
+
+	if isTrue "${ALLFIRMWARE}"
+	then
+		cp -a "${FIRMWARE_DIR}"/* "${TDIR}"/lib/firmware/ 2>/dev/null \
+			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
+	elif [ ${#FIRMWARE_FILES[@]} -gt 0 ]
+	then
+		fwlist=( "${FIRMWARE_FILES[@]}" )
+	else
+		local myfw=
+		local -a myfw_f=()
+		while IFS= read -r -u 3 myfw
+		do
+			if [ -z "${myfw}" ]
+			then
+				gen_die "modinfo error!"
+			fi
+
+			myfw_f=( $(compgen -G "${FIRMWARE_DIR}/${myfw}*") )
+
+			if [ ${#myfw_f[@]} -gt 1 ]
+			then
+				gen_die "excessive number of firmwares!"
+			fi
+
+			if [ ${#myfw_f[@]} -lt 1 ]
+			then
+				print_warning 3 "$(get_indent 3) - ${myfw} is missing; Ignoring ..."
+				continue
+			fi
+
+			fwlist+=( "${myfw_f#${FIRMWARE_DIR}/}" )
+		done 3< <( (
+			modinfo -b "${KERNEL_MODULES_PREFIX%/}" -k "${KV}" -F firmware $(mod_dep_list) 2>/dev/null || echo
+		) | sort | uniq )
+	fi
+
+	if [ ${#fwlist[@]} -gt 0 ]
+	then
+		pushd "${FIRMWARE_DIR}" &>/dev/null || gen_die "Failed to chdir to '${FIRMWARE_DIR}'!"
+		cp -rL --parents --target-directory="${TDIR}/lib/firmware" "${fwlist[@]}" 2>/dev/null \
+			|| gen_die "Failed to copy firmware files to '${TDIR}/lib/firmware'!"
+		popd &>/dev/null || gen_die "Failed to chdir!"
+
+		pushd "${TDIR}/lib/firmware" &>/dev/null || gen_die "Failed to chdir to '${TDIR}/lib/firmware'!"
+		find_and_unpack xz zstd
+		popd &>/dev/null || gen_die "Failed to chdir!"
+	fi
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append firmware to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
+append_util-linux() {
+	local PN="util-linux"
+	local TDIR="${TEMP}/initramfs-util-linux-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir -p "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	# Delete unneeded files
+	rm -rf usr/
+
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}
+
+append_overlay() {
+	cd "${INITRAMFS_OVERLAY}"  || gen_die "Failed to chdir to '${INITRAMFS_OVERLAY}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append overlay to cpio!"
+}
+
 create_initramfs() {
 	print_info 1 "initramfs: >> Initializing ..."
 
@@ -2165,34 +1144,9 @@ create_initramfs() {
 	append_data 'base_layout'
 	append_data 'util-linux'
 	append_data 'eudev'
-	append_data 'devicemanager' "${DMRAID}" "${LVM}" "${LUKS}" "${MULTIPATH}"
+	append_data 'modprobed'
 	append_data 'auxiliary' "${BUSYBOX}"
 	append_data 'busybox' "${BUSYBOX}"
-	append_data 'b2sum' "${B2SUM}"
-	append_data 'btrfs' "${BTRFS}"
-	append_data 'dmraid' "${DMRAID}"
-	append_data 'dropbear' "${SSH}"
-	append_data 'e2fsprogs' "${E2FSPROGS}"
-	append_data 'gpg' "${GPG}"
-	append_data 'iscsi' "${ISCSI}"
-	append_data 'keyutils' "${KEYCTL}"
-	append_data 'luks' "${LUKS}"
-	append_data 'lvm' "${LVM}"
-	append_data 'bcache' "${BCACHE}"
-	append_data 'mdadm' "${MDADM}"
-	append_data 'modprobed'
-	append_data 'multipath' "${MULTIPATH}"
-	append_data 'splash' "${SPLASH}"
-	append_data 'plymouth' "${PLYMOUTH}"
-	append_data 'strace' "${STRACE}"
-	append_data 'unionfs_fuse' "${UNIONFS}"
-	append_data 'xfsprogs' "${XFSPROGS}"
-	append_data 'zfs' "${ZFS}"
-
-	if isTrue "${ZFS}"
-	then
-		append_data 'libgcc_s'
-	fi
 
 	if isTrue "${FIRMWARE}" && [ -n "${FIRMWARE_DIR}" ]
 	then
@@ -2205,6 +1159,11 @@ create_initramfs() {
 	else
 		print_info 1 "$(get_indent 1)>> Not copying modules due to --no-ramdisk-modules ..."
 	fi
+
+	append_data 'devicemanager' "${DMRAID}" "${LVM}" "${LUKS}" "${MULTIPATH}"
+
+#BEGIN FEATURES create_initramfs()
+#END FEATURES create_initramfs()
 
 	# This should always be appended last
 	if [ -n "${INITRAMFS_OVERLAY}" ]

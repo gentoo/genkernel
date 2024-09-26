@@ -4,7 +4,7 @@ ifeq ("$(PACKAGE_VERSION)", "")
 PACKAGE_VERSION = $(shell git describe --tags |sed 's,^v,,g')
 endif
 distdir = genkernel-$(PACKAGE_VERSION)
-MANPAGE = genkernel.8
+MANPAGE := genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
 EXTRA_DIST = ChangeLog $(KCONF)
 
@@ -69,6 +69,14 @@ SOFTWARE = BCACHE_TOOLS \
 	ZLIB \
 	ZSTD
 
+FEATURE_COMPONENTS = append_base_layout \
+	create_initramfs \
+	determine_real_args \
+	genkernel_conf \
+	initramfs_append_func \
+	longusage \
+	parse_cmdline
+
 SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)}\n")
 
 PREFIX = /usr/local
@@ -80,12 +88,15 @@ else
 endif
 MANDIR = $(PREFIX)/share/man
 
+FEATURE_FILES = $(addprefix $(addprefix $(BUILD_DIR)/features/, $(GK_FEATURES))/, $(FEATURE_COMPONENTS))
+
 all: $(BUILD_DIR)/genkernel $(BUILD_DIR)/build-config man kconfig
 
 debug:
 	@echo "ARCH_KCONF=$(ARCH_KCONF)"
 	@echo "GENERATED_KCONF=$(GENERATED_KCONF)"
 	@echo "PACKAGE_VERSION=$(PACKAGE_VERSION)"
+	@echo "FEATURE_FILES: $(FEATURE_FILES)"
 
 kconfig: $(GENERATED_KCONF)
 man: $(addprefix $(BUILD_DIR)/,$(MANPAGE))
@@ -186,8 +197,23 @@ $(BUILD_DIR)/software.sh:
 	echo -e $(SOFTWARE_VERSION) > $(BUILD_DIR)/temp/versions
 	cat $(BUILD_DIR)/temp/versions defaults/software.sh > $(BUILD_DIR)/software.sh
 
-$(BUILD_DIR)/doc/genkernel.8.txt:
-	install -D doc/genkernel.8.txt $(BUILD_DIR)/doc/genkernel.8.txt
+$(BUILD_DIR)/temp/%:
+	install -d $(@D)
+	echo > $@
+ifdef GK_FEATURES
+	cat $(addsuffix /$(@F) <(echo), $(addprefix features/,${GK_FEATURES})) > $@
+endif
+
+$(BUILD_DIR)/doc/genkernel.8.txt: $(BUILD_DIR)/temp/man_genkernel_8
+	install -d $(BUILD_DIR)/doc/
+	cat doc/genkernel.8.txt | sed \
+		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r $(BUILD_DIR)/temp/man_genkernel_8' \
+		> $(BUILD_DIR)/doc/genkernel.8.txt
+
+$(BUILD_DIR)/genkernel.conf: $(BUILD_DIR)/temp/genkernel_conf
+	cat genkernel.conf | sed \
+		-e '/# BEGIN FEATURES genkernel_conf/ r $(BUILD_DIR)/temp/genkernel_conf' \
+		> $(BUILD_DIR)/genkernel.conf
 
 $(BUILD_DIR)/%: %
 	install -D $< $@
