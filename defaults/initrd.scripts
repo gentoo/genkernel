@@ -1257,7 +1257,7 @@ crypt_filter() {
 		res=$?
 		if [ ${res} -eq 0 ]
 		then
-			splash set_msg 'Disk unlocked.'
+			splash 'set_msg' 'Disk unlocked.'
 		fi
 		return ${res}
 	fi
@@ -1550,12 +1550,12 @@ chooseKeymap() {
 
 		run mkdir -p /etc/sysconfig
 		echo "XKEYBOARD=${keymap}" > /etc/sysconfig/keyboard
-		splash set_msg "Set keymap to '${keymap}'"
+		splash 'set_msg' "Set keymap to '${keymap}'"
 	elif [ -z "${keymap}" ]
 	then
 		good_msg
 		good_msg "Keeping default keymap"
-		splash set_msg "Keeping default keymap"
+		splash 'set_msg' "Keeping default keymap"
 	else
 		bad_msg "Sorry, but keymap '${keymap}' is invalid!"
 		unset keymap
@@ -1601,7 +1601,9 @@ splash() {
 			plymouthRun --newroot="${2}"
 			;;
 		esac
+        return 0
 	fi
+    bad_msg "Splash failed, PLYMOUTH=${PLYMOUTH}, FBSPLASH=${FBSPLASH}"
 }
 
 plymouthRun() {
@@ -2143,7 +2145,7 @@ openLUKS() {
 						# plymouth password entry is passed through STDIN, requiring '--passphrase-fd 0 --batch'
 						# for newer gpg versions (>=2.1) '--pinentry-mode loopback' may also be required for the above
 						# '--no-tty' is included to prevent interruption of plymouth by any gpg output
-						if [ "${PLYMOUTH}" = '1' -a "${CRYPT_SILENT}" != '1' ]
+						if [ "${PLYMOUTH}" = '1' ] && [ "${CRYPT_SILENT}" != '1' ]
 						then
 							gpg_cmd="${gpg_cmd} --passphrase-fd 0 --batch --no-tty --decrypt ${mntkey}${LUKS_KEY} | "
 						else

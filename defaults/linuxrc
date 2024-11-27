@@ -164,9 +164,11 @@ do
 			export MLIST
 		;;
 		splash)
-			if [ -x /usr/bin/plymouth -a -x /usr/sbin/plymouthd ]
+			if [ -x /usr/bin/plymouth ] && { [ -x /usr/sbin/plymouthd ] || [ -x /usr/bin/plymouthd ]; }
 			then
 				PLYMOUTH=1
+            else
+                bad_msg "Plymouth executables were not found!"
 			fi
 		;;
 		splash=*)
@@ -474,7 +476,7 @@ do
 			overlayfs_modules=1
 		;;
 		unionfs)
-			if [ ! -x /sbin/unionfs ]
+            if [ ! -x /sbin/unionfs ] && [ ! -x /usr/bin/unionfs ]
 			then
 				USE_UNIONFS_NORMAL=0
 				bad_msg 'unionfs binary not found: aborting use of unionfs!'
@@ -561,7 +563,7 @@ then
 	FIRSTMODS="${FIRSTMODS} crc32_generic"
 fi
 
-if [ "${ROOTFSTYPE}" = "btrfs" -o -x /sbin/btrfs ]
+if [ "${ROOTFSTYPE}" = "btrfs" ] || [ -x /sbin/btrfs ] || [ -x /usr/bin/btrfs ]
 then
 	# We have no mechanism to trigger btrfs module loading before UDEV's btrfs builtin
 	# will run; In addition, loading btrfs via UDEV could cause problems for slow
@@ -647,6 +649,7 @@ fi
 cd /
 
 # start splash; plymouth must start after udev
+good_msg "Initializing splash..."
 splash 'init'
 
 # Start iSCSI
