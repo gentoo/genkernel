@@ -1,0 +1,524 @@
+diff --git a/Common/DtaDev.cpp b/Common/DtaDev.cpp
+index 0346acf..283dd05 100644
+--- a/Common/DtaDev.cpp
++++ b/Common/DtaDev.cpp
+@@ -32,6 +32,7 @@ along with sedutil.  If not, see <http://www.gnu.org/licenses/>.
+ #include "DtaConstants.h"
+ #include "DtaEndianFixup.h"
+ #include "DtaHexDump.h"
++#include "DtaHashPwd.h"
+ 
+ using namespace std;
+ 
+@@ -211,6 +212,24 @@ void DtaDev::discovery0()
+     while (cpos < epos);
+ 
+ }
++
++uint8_t DtaDev::printPasswordHash(char * password)
++{
++    LOG(D1) << "Entering DtaDev::printPasswordHash()";
++    vector<uint8_t> hash;
++    DtaHashPwd(hash, password, this);
++
++    /* std::hex overwrites flags; save them, so we do not alter other output later */
++    ios_base::fmtflags saved_flags = cout.flags();
++
++    /* First two bytes are actually the opal header */
++    for (size_t i = 2; i < hash.size(); ++i)
++        cout << hex << setfill('0') << setw(2) << (int)hash[i];
++    cout << endl;
++    cout.flags(saved_flags);
++    return 0;
++}
++
+ void DtaDev::puke()
+ {
+ 	LOG(D1) << "Entering DtaDev::puke()";
+@@ -300,3 +319,9 @@ void DtaDev::puke()
+ 	if (disk_info.Unknown)
+ 		cout << "**** " << (uint16_t)disk_info.Unknown << " **** Unknown function codes IGNORED " << std::endl;
+ }
++
++uint8_t DtaDev::prepareForS3Sleep(uint8_t lockingrange, char* password)
++{
++    LOG(E) << "S3 sleep not supported on this platform";
++    return 1;
++}
+diff --git a/Common/DtaDev.h b/Common/DtaDev.h
+index 473f7bd..e103633 100644
+--- a/Common/DtaDev.h
++++ b/Common/DtaDev.h
+@@ -74,6 +74,9 @@ public:
+ 	 */
+ 	void discovery0();
+ 
++	/** Print password hash, computed with this device's serial number
++	 */
++	uint8_t printPasswordHash(char * password);
+ 	/*
+ 	 * virtual methods required in the OS specific
+ 	 * device class
+@@ -249,6 +252,11 @@ public:
+ 	 * @param password Password of administrative authority for locking range
+ 	 */
+ 	virtual uint8_t eraseLockingRange(uint8_t lockingrange, char * password) = 0;
++    /** Optionally implemented s3 sleep support.
++     * On Linux, it saves the password to the kernel to use on resume.
++     * @param password the password to save to the kernel
++     */
++    virtual uint8_t prepareForS3Sleep(uint8_t lockingrange, char* password);
+ 	/** Dumps an object for diagnostic purposes
+ 	 * @param sp index into the OPALUID table for the SP the object is in
+ 	 * @param auth the authority ti use for the dump
+@@ -284,6 +292,7 @@ public:
+ 	/** return the communications ID to be used for sessions to this device */
+ 	virtual uint16_t comID() = 0;
+ 	bool no_hash_passwords; /** disables hashing of passwords */
++	bool hex_passwords; /** converts passwords from hex before using them */
+ 	sedutiloutput output_format; /** standard, readable, JSON */
+ protected:
+ 	const char * dev;   /**< character string representing the device in the OS lexicon */
+diff --git a/Common/DtaDevEnterprise.cpp b/Common/DtaDevEnterprise.cpp
+index ae649ec..76e6e39 100644
+--- a/Common/DtaDevEnterprise.cpp
++++ b/Common/DtaDevEnterprise.cpp
+@@ -1439,7 +1439,7 @@ uint8_t DtaDevEnterprise::exec(DtaCommand * cmd, DtaResponse & resp, uint8_t pro
+     IFLOG(D) DtaAnnotatedDump(IF_RECV, cmd->getRespBuffer(), SWAP32(hdr->cp.length) + sizeof (OPALComPacket));
+     IFLOG(D3) DtaHexDump(cmd->getRespBuffer(), SWAP32(hdr->cp.length) + sizeof (OPALComPacket));
+     if (0 != rc) {
+-        LOG(E) << "Command failed on recv" << (uint16_t) rc;
++        LOG(E) << "Command failed on recv, returned " << (uint16_t) rc;
+         return rc;
+     }
+     resp.init(cmd->getRespBuffer());
+diff --git a/Common/DtaDevOpal.cpp b/Common/DtaDevOpal.cpp
+index 1cb5701..3014ebb 100644
+--- a/Common/DtaDevOpal.cpp
++++ b/Common/DtaDevOpal.cpp
+@@ -1583,7 +1583,7 @@ uint8_t DtaDevOpal::exec(DtaCommand * cmd, DtaResponse & resp, uint8_t protocol)
+     LOG(D3) << std::endl << "Dumping reply buffer";
+     IFLOG(D3) DtaHexDump(cmd->getRespBuffer(), SWAP32(hdr->cp.length) + sizeof (OPALComPacket));
+ 	if (0 != lastRC) {
+-        LOG(E) << "Command failed on recv" << (uint16_t) lastRC;
++        LOG(E) << "Command failed on recv, returned " << (uint16_t) lastRC;
+         return lastRC;
+     }
+     resp.init(cmd->getRespBuffer());
+@@ -1833,4 +1833,4 @@ uint8_t DtaDevOpal::rawCmd(char *sp, char * hexauth, char *pass,
+ 	delete session;
+ 	LOG(D1) << "Exiting DtaDevEnterprise::rawCmd";
+ 	return 0;
+-}
+\ No newline at end of file
++}
+diff --git a/Common/DtaHashPwd.cpp b/Common/DtaHashPwd.cpp
+index 1997393..d3b888a 100644
+--- a/Common/DtaHashPwd.cpp
++++ b/Common/DtaHashPwd.cpp
+@@ -32,8 +32,8 @@ extern "C" {
+ }
+ using namespace std;
+ 
+-void DtaHashPassword(vector<uint8_t> &hash, char * password, vector<uint8_t> salt,
+-	unsigned int iter, uint8_t hashsize)
++void DtaHashPassword(vector<uint8_t> &hash, const  vector<uint8_t>& password,
++    const vector<uint8_t>& salt, unsigned int iter, uint8_t hashsize)
+ {
+ 	LOG(D1) << " Entered DtaHashPassword";
+ 	// if the hashsize can be > 255 the token overhead logic needs to be fixed
+@@ -42,7 +42,7 @@ void DtaHashPassword(vector<uint8_t> &hash, char * password, vector<uint8_t> sal
+ 	
+ 	hash.clear();
+ 	// don't hash the devault OPAL password ''
+-	if (0 == strnlen(password, 32)) {
++	if (0 == password.size()) {
+ 		goto exit;
+ 	}
+ 	hash.reserve(hashsize + 2); // hope this will prevent reallocation
+@@ -50,7 +50,7 @@ void DtaHashPassword(vector<uint8_t> &hash, char * password, vector<uint8_t> sal
+ 		hash.push_back(' ');
+ 	}
+ 	
+-	cf_pbkdf2_hmac((uint8_t *)password, strnlen(password, 256),
++	cf_pbkdf2_hmac(&password[0], password.size(),
+ 		salt.data(), salt.size(),
+ 		iter,
+ 		hash.data(), hash.size(),
+@@ -67,21 +67,38 @@ void DtaHashPwd(vector<uint8_t> &hash, char * password, DtaDev * d)
+ {
+     LOG(D1) << " Entered DtaHashPwd";
+     char *serNum;
++    vector<uint8_t> decoded_password;
++    if (d->hex_passwords)
++    {
++        for (char* p=password; *p; ++p)
++        {
++            uint8_t num1 = (uint8_t)(*p & 0x40 ? (*p & 0xf) + 9 : *p & 0xf);
++            ++p;
++            if (*p == 0)
++                break;
++            uint8_t num2 = (uint8_t)(*p & 0x40 ? (*p & 0xf) + 9 : *p & 0xf);
++            decoded_password.push_back(num1 * 16 + num2);
++        }
++    }
++    else
++    {
++        decoded_password.assign(password, password + strlen(password));
++    }
+ 
+     if (d->no_hash_passwords) {
+-        hash.clear();
+-	for (uint16_t i = 0; i < strnlen(password, 32); i++)
+-		hash.push_back(password[i]);
+-	// add the token overhead
+-	hash.insert(hash.begin(), (uint8_t)hash.size());
+-	hash.insert(hash.begin(), 0xd0);
+-	LOG(D1) << " Exit DtaHashPwd";
+-	return;
++        if (decoded_password.size() > 32)
++            decoded_password.resize(32);
++        hash = decoded_password;
++        // add the token overhead
++        hash.insert(hash.begin(), (uint8_t)hash.size());
++        hash.insert(hash.begin(), 0xd0);
++        LOG(D1) << " Exit DtaHashPwd";
++        return;
+     }
+     serNum = d->getSerialNum();
+     vector<uint8_t> salt(serNum, serNum + 20);
+     //	vector<uint8_t> salt(DEFAULTSALT);
+-    DtaHashPassword(hash, password, salt);
++    DtaHashPassword(hash, decoded_password, salt);
+     LOG(D1) << " Exit DtaHashPwd"; // log for hash timing
+ }
+ 
+@@ -109,7 +126,7 @@ int testresult(std::vector<uint8_t> &result, const char * expected, size_t len)
+ int Testsedutil(const PBKDF_TestTuple *testSet, unsigned int testSetSize)
+ {
+     int pass = 1;
+-    std::vector<uint8_t> hash, seaSalt;
++    std::vector<uint8_t> hash, seaSalt, password;
+ 
+     for (unsigned int i = 0; i < testSetSize; i++) {
+         const PBKDF_TestTuple &tuple = testSet[i];
+@@ -120,7 +137,8 @@ int Testsedutil(const PBKDF_TestTuple *testSet, unsigned int testSetSize)
+         }
+ 		printf("Password %s Salt %s Iterations %i Length %i\n", (char *)tuple.Password,
+ 			(char *) tuple.Salt, tuple.iterations, tuple.hashlen);
+-		DtaHashPassword(hash, (char *) tuple.Password, seaSalt, tuple.iterations, tuple.hashlen);
++        password.assign(tuple.Password, tuple.Password+strlen(tuple.Password));
++		DtaHashPassword(hash, password, seaSalt, tuple.iterations, tuple.hashlen);
+ 		int fail = (testresult(hash, tuple.hexDerivedKey, tuple.hashlen) == 0);
+         pass = pass & fail;
+     }
+diff --git a/Common/DtaHashPwd.h b/Common/DtaHashPwd.h
+index 3815f7c..2e28497 100644
+--- a/Common/DtaHashPwd.h
++++ b/Common/DtaHashPwd.h
+@@ -41,7 +41,7 @@ void DtaHashPwd(vector<uint8_t> &hash, char * password, DtaDev * device);
+  * @param iter number of iterations to be preformed 
+  * @param hashsize size of hash to be returned
+  */
+-void DtaHashPassword(vector<uint8_t> &hash, char * password, vector<uint8_t> salt,
+-        unsigned int iter = 75000, uint8_t hashsize = 32);
++void DtaHashPassword(vector<uint8_t> &hash, const vector<uint8_t> &password,
++        const vector<uint8_t> &salt, unsigned int iter = 75000, uint8_t hashsize = 32);
+ /** Test the hshing function using publicly available test cased and report */
+ int TestPBKDF2();
+diff --git a/Common/DtaOptions.cpp b/Common/DtaOptions.cpp
+index fdacc40..91cc240 100644
+--- a/Common/DtaOptions.cpp
++++ b/Common/DtaOptions.cpp
+@@ -27,10 +27,11 @@ void usage()
+     printf("a utility to manage self encrypting drives that conform\n");
+     printf("to the Trusted Computing Group OPAL 2.0 SSC specification\n");
+     printf("General Usage:                     (see readme for extended commandset)\n");
+-    printf("sedutil-cli <-v> <-n> <action> <options> <device>\n");
++    printf("sedutil-cli <-v> <-n> <-x> <action> <options> <device>\n");
+     printf("-v (optional)                       increase verbosity, one to five v's\n");
+     printf("-n (optional)                       no password hashing. Passwords will be sent in clear text!\n");
+     printf("-l (optional)                       log style output to stderr only\n");
++    printf("-x (optional)                       password inputs are in hex form\n");
+     printf("actions \n");
+     printf("--scan \n");
+     printf("                                Scans the devices on the system \n");
+@@ -95,6 +96,12 @@ void usage()
+     printf("                                revert the device using the PSID *ERASING* *ALL* the data \n");
+     printf("--printDefaultPassword <device>\n");
+     printf("                                print MSID \n");
++    printf("--printPasswordHash <password> <device>\n");
++    printf("                                print the hash of the password \n");
++    printf("                                as computed by sedutil. Hex-ecoded.\n");
++    printf("--prepareForS3Sleep <0...n> <Admin1password> <device>\n");
++    printf("                                Automatically unlock range after S3 resume\n");
++    printf("                                This command will save the password to kernel memory\n");
+     printf("\n");
+     printf("Examples \n");
+     printf("sedutil-cli --scan \n");
+@@ -140,6 +147,10 @@ uint8_t DtaOptions(int argc, char * argv[], DTA_OPTIONS * opts)
+ 			opts->output_format = sedutilNormal;
+ 			outputFormat = sedutilNormal;
+ 		}
++		else if (!strcmp("-x", argv[i])) {
++			baseOptions += 1;
++            opts->hex_passwords = true;
++		}
+ 		else if (!(('-' == argv[i][0]) && ('-' == argv[i][1])) && 
+ 			(0 == opts->action))
+ 		{
+@@ -511,6 +522,31 @@ uint8_t DtaOptions(int argc, char * argv[], DTA_OPTIONS * opts)
+ 			END_OPTION
+ 		BEGIN_OPTION(objDump, 5) i += 4; OPTION_IS(device) END_OPTION
+         BEGIN_OPTION(printDefaultPassword, 1) OPTION_IS(device) END_OPTION
++        BEGIN_OPTION(printPasswordHash, 2)
++            OPTION_IS(password)
++            OPTION_IS(device)
++        END_OPTION
++		BEGIN_OPTION(prepareForS3Sleep, 3)
++			TESTARG(0, lockingrange, 0)
++			TESTARG(1, lockingrange, 1)
++			TESTARG(2, lockingrange, 2)
++			TESTARG(3, lockingrange, 3)
++			TESTARG(4, lockingrange, 4)
++			TESTARG(5, lockingrange, 5)
++			TESTARG(6, lockingrange, 6)
++			TESTARG(7, lockingrange, 7)
++			TESTARG(8, lockingrange, 8)
++			TESTARG(9, lockingrange, 9)
++			TESTARG(10, lockingrange, 10)
++			TESTARG(11, lockingrange, 11)
++			TESTARG(12, lockingrange, 12)
++			TESTARG(13, lockingrange, 13)
++			TESTARG(14, lockingrange, 14)
++			TESTARG(15, lockingrange, 15)
++			TESTFAIL("Invalid Locking Range (0-15)")
++			OPTION_IS(password)
++			OPTION_IS(device)
++		END_OPTION
+ 		BEGIN_OPTION(rawCmd, 7) i += 6; OPTION_IS(device) END_OPTION
+ 		else {
+             LOG(E) << "Invalid command line argument " << argv[i];
+diff --git a/Common/DtaOptions.h b/Common/DtaOptions.h
+index c012af1..669eef8 100644
+--- a/Common/DtaOptions.h
++++ b/Common/DtaOptions.h
+@@ -43,6 +43,7 @@ typedef struct _DTA_OPTIONS {
+ 	uint8_t lrlength;		/** the length in blocks of a lockingrange */
+ 
+ 	bool no_hash_passwords; /** global parameter, disables hashing of passwords */
++    bool hex_passwords; /** global parameter, all incoming passwords are treated as hex-encoded */
+ 	sedutiloutput output_format;
+ } DTA_OPTIONS;
+ /** Print a usage message */
+@@ -95,6 +96,8 @@ typedef enum _sedutiloption {
+ 	validatePBKDF2,
+ 	objDump,
+     printDefaultPassword,
++    printPasswordHash,
++    prepareForS3Sleep,
+ 	rawCmd,
+ 
+ } sedutiloption;
+diff --git a/Common/sedutil.cpp b/Common/sedutil.cpp
+index fe6df19..4427e87 100644
+--- a/Common/sedutil.cpp
++++ b/Common/sedutil.cpp
+@@ -93,6 +93,8 @@ int main(int argc, char * argv[])
+ 		// make sure DtaDev::no_hash_passwords is initialized
+ 		d->no_hash_passwords = opts.no_hash_passwords;
+ 
++		d->hex_passwords = opts.hex_passwords;
++
+ 		d->output_format = opts.output_format;
+ 	}
+ 
+@@ -259,6 +261,14 @@ int main(int argc, char * argv[])
+ 		LOG(D) << "print default password";
+         return d->printDefaultPassword();
+         break;
++    case sedutiloption::printPasswordHash:
++		LOG(D) << "print password hash";
++        return d->printPasswordHash(argv[opts.password]);
++        break;
++	case sedutiloption::prepareForS3Sleep:
++        LOG(D) << "Preparing for S3 sleep " << (uint16_t) opts.lockingrange;
++        return d->prepareForS3Sleep(opts.lockingrange, argv[opts.password]);
++		break;
+ 	case sedutiloption::rawCmd:
+ 		LOG(D) << "Performing cmdDump ";
+ 		return d->rawCmd(argv[argc - 7], argv[argc - 6], argv[argc - 5], argv[argc - 4], argv[argc - 3], argv[argc - 2]);
+diff --git a/Makefile.am b/Makefile.am
+index 6656d59..35b6aad 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -25,7 +25,8 @@ SEDUTIL_COMMON_CODE = Common/log.h \
+ 	Common/pbkdf2/bitops.h Common/pbkdf2/blockwise.h \
+ 	Common/pbkdf2/handy.h Common/pbkdf2/tassert.h 
+ SEDUTIL_LINUX_CODE = \
+-	linux/Version.h linux/os.h linux/DtaDevLinuxDrive.h \
++	linux/Version.h linux/os.h \
++	linux/DtaDevLinuxDrive.h linux/DtaDevLinuxDrive.cpp \
+ 	linux/DtaDevLinuxNvme.cpp linux/DtaDevLinuxSata.cpp \
+ 	linux/DtaDevLinuxNvme.h linux/DtaDevLinuxSata.h \
+ 	linux/DtaDevOS.cpp linux/DtaDevOS.h 
+diff --git a/linux/DtaDevLinuxDrive.cpp b/linux/DtaDevLinuxDrive.cpp
+new file mode 100755
+index 0000000..dda4642
+--- /dev/null
++++ b/linux/DtaDevLinuxDrive.cpp
+@@ -0,0 +1,46 @@
++/* C:B**************************************************************************
++Copyright 2017, Alex Badics
++
++This file is part of sedutil.
++
++sedutil is free software: you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation, either version 3 of the License, or
++(at your option) any later version.
++
++sedutil is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with sedutil.  If not, see <http://www.gnu.org/licenses/>.
++
++ * C:E********************************************************************** */
++#include "os.h"
++#include <sys/ioctl.h>
++#include <linux/sed-opal.h>
++#include "DtaDevLinuxDrive.h"
++
++using namespace std;
++
++uint8_t DtaDevLinuxDrive::prepareForS3Sleep(uint8_t lockingrange, const vector<uint8_t> &password_hash)
++{
++    LOG(D1) << "Entering DtaDevLinuxDrive::prepareForS3Sleep";
++
++    opal_lock_unlock opal_ioctl_data={};
++    opal_ioctl_data.l_state = OPAL_RW;
++    opal_ioctl_data.session.who = OPAL_ADMIN1;
++    opal_ioctl_data.session.opal_key.lr = lockingrange;
++
++    size_t hash_len=min(password_hash.size(), sizeof(opal_ioctl_data.session.opal_key.key));
++    LOG(D2) << "Setting a hash of length" << hash_len;
++
++    memcpy(opal_ioctl_data.session.opal_key.key, &password_hash[0], hash_len);
++    opal_ioctl_data.session.opal_key.key_len = hash_len;
++
++    int err = ioctl(fd, IOC_OPAL_SAVE, &opal_ioctl_data);
++    if (err < 0)
++        return errno;
++    return 0;
++}
+diff --git a/linux/DtaDevLinuxDrive.h b/linux/DtaDevLinuxDrive.h
+index d2022a1..39d1951 100755
+--- a/linux/DtaDevLinuxDrive.h
++++ b/linux/DtaDevLinuxDrive.h
+@@ -18,8 +18,10 @@ along with sedutil.  If not, see <http://www.gnu.org/licenses/>.
+ 
+  * C:E********************************************************************** */
+ #pragma once
++#include <vector>
+ #include "DtaStructures.h"
+ 
++using namespace std;
+ /** virtual implementation for a disk interface-generic disk drive
+  */
+ class DtaDevLinuxDrive {
+@@ -45,4 +47,7 @@ public:
+             void * buffer, uint32_t bufferlen) = 0;
+     /** Routine to send an identify to the device */
+     virtual void identify(OPAL_DiskInfo& disk_info) = 0;
++    /** Save the password hash to the kernel for S3 sleep wakeup */
++    uint8_t prepareForS3Sleep(uint8_t lockingrange, const vector<uint8_t> &password_hash);
++    int fd; /**< Linux handle for the device  */
+ };
+diff --git a/linux/DtaDevLinuxNvme.h b/linux/DtaDevLinuxNvme.h
+index 3ea6874..b305a88 100755
+--- a/linux/DtaDevLinuxNvme.h
++++ b/linux/DtaDevLinuxNvme.h
+@@ -59,5 +59,4 @@ public:
+             void * buffer, uint32_t bufferlen);
+     /** NVMe specific routine to send an identify to the device */
+     void identify(OPAL_DiskInfo& disk_info);
+-    int fd; /**< Linux handle for the device  */
+ };
+diff --git a/linux/DtaDevLinuxSata.h b/linux/DtaDevLinuxSata.h
+index 14b7e12..6e19b44 100755
+--- a/linux/DtaDevLinuxSata.h
++++ b/linux/DtaDevLinuxSata.h
+@@ -55,6 +55,5 @@ public:
+             void * buffer, uint32_t bufferlen);
+     /** Linux specific routine to send an ATA identify to the device */
+     void identify_SAS(OPAL_DiskInfo *disk_info);
+-    int fd; /**< Linux handle for the device  */
+     int isSAS; /* The device is sas */
+ };
+diff --git a/linux/DtaDevOS.cpp b/linux/DtaDevOS.cpp
+index 5261e73..6ad6001 100644
+--- a/linux/DtaDevOS.cpp
++++ b/linux/DtaDevOS.cpp
+@@ -38,6 +38,9 @@ along with sedutil.  If not, see <http://www.gnu.org/licenses/>.
+ #include "DtaDevLinuxSata.h"
+ #include "DtaDevLinuxNvme.h"
+ #include "DtaDevGeneric.h"
++#include "DtaHashPwd.h"
++#include "DtaSession.h"
++#include "DtaDevOpal.h"
+ 
+ using namespace std;
+ 
+@@ -165,6 +168,36 @@ int  DtaDevOS::diskScan()
+ 	return 0;
+ }
+ 
++uint8_t DtaDevOS::prepareForS3Sleep(uint8_t lockingrange, char* password)
++{
++    LOG(D1) << "Entering DtaDevOS::prepareForS3Sleep ";
++    LOG(D2) << "Starting testing of password ";
++	session = new DtaSession(this);
++	if (NULL == session) {
++		LOG(E) << "Unable to create session object ";
++		return DTAERROR_OBJECT_CREATE_FAILED;
++	}
++    int err;
++	if ((err = session->start(OPAL_UID::OPAL_LOCKINGSP_UID, password, OPAL_UID::OPAL_ADMIN1_UID)) != 0) {
++		delete session;
++		LOG(E) << "Unable to authenticate with the given password";
++		return err;
++	}
++    delete session;
++    LOG(D2) << "Test successful, saving it to kernel ";
++    vector<uint8_t> hash;
++    DtaHashPwd(hash, password, this);
++    hash.erase(hash.begin(), hash.begin()+2);
++
++    err = drive->prepareForS3Sleep(lockingrange, hash);
++    if (err)
++    {
++        LOG(E) << "Error saving the password to  the kernel errno = " << errno;
++        return errno;
++    }
++    return 0;
++}
++
+ /** Close the device reference so this object can be delete. */
+ DtaDevOS::~DtaDevOS()
+ {
+diff --git a/linux/DtaDevOS.h b/linux/DtaDevOS.h
+index beeacb3..fc3705f 100644
+--- a/linux/DtaDevOS.h
++++ b/linux/DtaDevOS.h
+@@ -49,6 +49,8 @@ public:
+             void * buffer, uint32_t bufferlen);
+     /** A static class to scan for supported drives */
+     static int diskScan();
++    /** Save device key to kernel for S3 sleep resume */
++    uint8_t prepareForS3Sleep(uint8_t lockingrange, char* password);
+ protected:
+     /** OS specific command to Wait for specified number of milliseconds 
+      * @param ms  number of milliseconds to wait
