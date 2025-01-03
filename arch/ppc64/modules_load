@@ -3,3 +3,10 @@
 
 # Crypto
 MODULES_CRYPTO+=" crc32c-vpmsum"
+
+# Stuff exclusive to Sony PlayStation 3
+MODULES_PS3="ps3fb rtc-ps3 ps3stor_lib ps3av_mod ps3-vuart ps3-sys-manager ps3-lpm ps3-disp-manager ps3strgmngr ps3encdec ps3lv1call"
+MODULES_NET+=" ps3_jupiter ps3_jupiter_sta ps3_gelic"
+MODULES_BLOCK+=" ps3flash ps3nflash ps3disk"
+MODULES_SCSI+=" ps3rom"
+MODULES_FS+=" spuldrfs spuisofs spufs"
