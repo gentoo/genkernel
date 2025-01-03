@@ -695,7 +695,8 @@ recognized by the kernel itself.
 *crypt_root_options*=<...>::
     This specifies additional options, which should get passed to
     cryptsetup when opening root volume. Can be specified multiple
-    times or separate multiple options with a comma.
+    times or separate multiple options with a comma, for example
+    '--perf-no_read_workqueue,--perf-no_write_workqueue'.
 
 *crypt_swap*=<...>::
     This specifies the swap device encrypted by LUKS.
@@ -703,7 +704,8 @@ recognized by the kernel itself.
 *crypt_swap_options*=<...>::
     This specifies additional options, which should get passed to
     cryptsetup when opening swap volume. Can be specified multiple
-    times or separate multiple options with a comma.
+    times or separate multiple options with a comma, for example
+    '--perf-no_read_workqueue,--perf-no_write_workqueue'.
 
 *root_header*=<...>::
     In case your encrypted root uses a LUKS detached header, you can
