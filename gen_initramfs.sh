@@ -2409,6 +2409,16 @@ create_initramfs() {
 			${mkimage_cmd} ${mkimage_args} -n "${GK_FILENAME_TEMP_INITRAMFS}" -d "${CPIO_ARCHIVE}" "${CPIO_ARCHIVE}.uboot" >> ${LOGFILE} 2>&1 || gen_die "Wrapping initramfs using mkimage failed"
 			mv -f "${CPIO_ARCHIVE}.uboot" "${CPIO_ARCHIVE}" || gen_die "Rename failed"
 		fi
+
+		if isTrue "${BOOTCONFIG}"
+		then
+			local bootconfig_cmd=$(type -p bootconfig)
+			[[ -z ${bootconfig_cmd} ]] && gen_die "bootconfig is not available. Please install package 'dev-util/bootconfig'."
+			local bootconfig_args="-a ${BOOTCONFIG_FILE}"
+			print_info 1 "$(get_indent 1)>> Appending bootconfig data ..."
+			print_info 2 "$(get_indent 1)${bootconfig_cmd} ${bootconfig_args} ${CPIO_ARCHIVE}"
+			${bootconfig_cmd} ${bootconfig_args} "${CPIO_ARCHIVE}" >> ${LOGFILE} 2>&1 || gen_die "Appending bootconfig data failed"
+		fi
 	fi
 
 	if isTrue "${CMD_INSTALL}"

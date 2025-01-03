@@ -424,6 +424,7 @@ determine_real_args() {
 	set_config_with_override BOOL   HYPERV                                CMD_HYPERV                                "no"
 	set_config_with_override STRING BOOTFONT                              CMD_BOOTFONT                              "none"
 	set_config_with_override STRING BOOTLOADER                            CMD_BOOTLOADER                            "no"
+	set_config_with_override BOOL   BOOTCONFIG                            CMD_BOOTCONFIG                            "no"
 	set_config_with_override BOOL   B2SUM                                 CMD_B2SUM                                 "no"
 	set_config_with_override BOOL   BUSYBOX                               CMD_BUSYBOX                               "yes"
 	set_config_with_override STRING BUSYBOX_CONFIG                        CMD_BUSYBOX_CONFIG
@@ -772,6 +773,18 @@ determine_real_args() {
 			gen_die "Invalid bootloader '${BOOTLOADER}'; --bootloader=<bootloader> requires one of: no, grub, grub2"
 			;;
 	esac
+
+	if isTrue "${BOOTCONFIG}"
+	then
+		BOOTCONFIG_FILE=$(expand_file "${BOOTCONFIG_FILE}")
+		if [ -z "${BOOTCONFIG_FILE}" ]
+		then
+			gen_die "--bootconfig value '${BOOTCONFIG_FILE}' failed to expand!"
+		elif [ ! -e "${BOOTCONFIG_FILE}" ]
+		then
+			gen_die "--bootconfig file '${BOOTCONFIG_FILE}' does not exist!"
+		fi
+	fi
 
 	if isTrue "${KERNEL_SOURCES}"
 	then
