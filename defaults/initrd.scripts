@@ -1791,6 +1791,19 @@ start_volumes() {
 				if [ $? -ne 0 ]
 				then
 					bad_msg "Import of ${ZFS_POOL} failed!"
+				elif [ "${ZFS_LOADKEY_FOR_ALL}" = '1' ]
+				then
+					good_msg "Importing other ZFS pools ..."
+
+					local zfs_cmd="run /sbin/zpool import -N -a ${ZPOOL_CACHE} ${ZPOOL_FORCE} 2>&1"
+					is_log_enabled && zfs_cmd="${zfs_cmd} | tee -a '${GK_INIT_LOG}'"
+					is_quiet && zfs_cmd="${zfs_cmd} 1>/dev/null"
+
+					eval "${zfs_cmd}"
+					if [ $? -ne 0 ]
+					then
+						bad_msg "Importing ZFS pools failed!"
+					fi
 				fi
 			fi
 		fi
