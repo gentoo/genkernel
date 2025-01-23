@@ -131,6 +131,18 @@ do
 					fi
 				;;
 			esac
+
+			case "${x#*=}" in
+				*loadkeyall*)
+					ZFS_LOADKEY_FOR_ALL=1
+				;;
+			esac
+
+			case "${x#*=}" in
+				*unifiedkey*)
+					ZFS_LOADKEY_UNIFIED=1
+				;;
+			esac
 		;;
 		quiet|quiet_genkernel)
 			QUIET=1
@@ -923,7 +935,28 @@ do
 					if [ "${ZFS_ENCRYPTIONROOT}" != '-' ] && [ "${ZFS_KEYSTATUS}" = 'unavailable' ]
 					then
 						good_msg "Detected ZFS encryption, asking for key"
-						run zfs load-key "${ZFS_ENCRYPTIONROOT}"
+						if [ "${ZFS_LOADKEY_FOR_ALL}" = '1' ]
+						then
+							if [ "${ZFS_LOADKEY_UNIFIED}" = '1' ]
+							then
+								echo -n "Enter unified passphrase for ZFS dataset ${ZFS_ENCRYPTIONROOT}: "
+								stty -echo
+								ZFS_PASSWORD=$(head -n 1 | tr -d '\n')
+								stty echo
+								echo
+
+								if [ -n "${ZFS_PASSWORD}" ]
+								then
+									yes "${ZFS_PASSWORD}" | run zfs load-key -a
+								fi
+								ZFS_PASSWORD="00000000000000000000000000000000"
+								unset ZFS_PASSWORD
+							else
+								run zfs load-key -a
+							fi
+						else
+							run zfs load-key "${ZFS_ENCRYPTIONROOT}"
+						fi
 
 						# Get new key status to check if load-key was successful
 						# or dataset has been opened by someone else in the meantime (through SSH for instance)
