@@ -1,0 +1,4 @@
+		--b2sum|--no-b2sum)
+			CMD_B2SUM=$(parse_optbool "$*")
+			print_info 3 "CMD_B2SUM: ${CMD_B2SUM}"
+			;;

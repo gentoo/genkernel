@@ -1,0 +1,3 @@
+*--*[*no-*]*e2fsprogs*::
+    Includes or excludes e2fsprogs.
+    When enabled, this will compile e2fsprogs for you.

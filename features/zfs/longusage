@@ -1,0 +1,2 @@
+  echo "	--zfs			Include ZFS support (enabled by default if rootfs is ZFS)"
+  echo "	--no-zfs		Exclude ZFS support"

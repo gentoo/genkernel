@@ -1,0 +1,2 @@
+  echo "	--multipath		Include Multipath support"
+  echo "	--no-multipath		Exclude Multipath support"

@@ -1,0 +1,3 @@
+*--*[*no-*]*xfsprogs*::
+    Includes or excludes xfsprogs.
+    When enabled, this will compile xfsprogs for you.

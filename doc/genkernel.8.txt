@@ -107,10 +107,6 @@ KERNEL CONFIGURATION
     Saves, or does not save the kernel configuration to '/etc/kernels'
     if the kernel is successfully compiled.
 
-*--*[*no-*]*bcache*::
-    Adds, or skip adding block layer cache (bcache) support to kernel
-    configuration.
-
 *--*[*no-*]*hyperv*::
     Adds, or skip adding Microsoft Hyper-V support to kernel configuration.
 
@@ -185,9 +181,6 @@ specified.
 *--*[*no-*]*oldconfig*::
     Runs, or does not run, "make oldconfig" before compilation.  Specifying
     *--oldconfig* implies *--no-clean*.
-
-*--*[*no-*]*splash*::
-    Installs, or not, framebuffer splash support into initramfs.
 
 *--*[*no-*]*ramdisk-modules*::
     Copies or does not copy configured modules to the ramdisk.
@@ -349,23 +342,9 @@ LOW-LEVEL COMPILATION OPTIONS
 
 INITIALIZATION
 ~~~~~~~~~~~~~~
-*--splash*=<theme>::
-    Enable framebuffer splash using <theme>.
-
-*--splash-res*=<resolutions>::
-    Select gensplash resolutions to include.
-
-*--*[*no-*]*splash*=<theme>::
-    If the extra argument is specified,  splash is forced using
-    <theme>  rather than the default theme specified in your splash
-    configuration. If *--no-splash* is specified, then splash is disabled.
-
-*--*[*no-*]*plymouth*::
-    Includes or excludes Plymouth from the initramfs. If "splash" is
-    passed at boot, Plymouth will be activated.
-
-*--plymouth-theme*=<theme>::
-    Embeds the given Plymouth theme into the initramfs.
+*--*[*no-*]*busybox*::
+    Includes or excludes busybox in the initramfs.
+    When enabled, this will compile busybox for you.
 
 *--do-keymap-auto*::
     Force keymap selection at boot.
@@ -373,18 +352,14 @@ INITIALIZATION
 *--*[*no-*]*keymap*::
     Enables or disables keymap selection at boot.
 
-*--*[*no-*]*lvm*::
-    Includes or excludes LVM support.
-    When enabled, this will compile LVM for you.
+*--*[*no-*]*nfs*::
+    Includes or excludes NFS support.
 
-*--*[*no-*]*mdadm*::
-    Includes or excludes mdadm support.
-    When enabled, this will compile mdadm for you.
+*--*[*no-*]*netboot*::
+    Creates or does not create a self-contained env in the initramfs.
 
-*--mdadm-config*=<file>::
-    Use <file> as configfile for MDADM.
-    By default the ramdisk will be built *without* an 'mdadm.conf' and
-    will auto-detect arrays during boot-up.
+// BEGIN FEATURES man_genkernel_8
+// END FEATURES man_genkernel_8
 
 *--*[*no-*]*microcode-initramfs*::
     Prepends, or do not prepend ucode(s) to the initramfs.
@@ -394,55 +369,8 @@ INITIALIZATION
 NOTE: Embedding microcode updates into initramfs is *deprecated* when
 system is able to load multiple initramfs.
 
-*--*[*no-*]*dmraid*::
-    Includes or excludes DMRAID support.
-    When enabled, this will compile dmraid for you.
-
-*--*[*no-*]*nfs*::
-    Includes or excludes NFS support.
-
-*--*[*no-*]*e2fsprogs*::
-    Includes or excludes e2fsprogs.
-    When enabled, this will compile e2fsprogs for you.
-
-*--*[*no-*]*xfsprogs*::
-    Includes or excludes xfsprogs.
-    When enabled, this will compile xfsprogs for you.
-
-*--*[*no-*]*zfs*::
-    Includes or excludes ZFS support.
-
-*--*[*no-*]*btrfs*::
-    Includes or excludes Btrfs support.
-    When enabled, this will compile btrfs-progs for you.
-
-*--*[*no-*]*multipath*::
-    Includes or excludes Multipath support.
-    When enabled, this will compile multipath-tools for you.
-
-*--*[*no-*]*iscsi*::
-    Includes or excludes iSCSI support.
-    When enabled, this will compile open-iscsi for you.
-
 *--*[*no-*]*sandbox*::
     Enables or disables sandbox-ing when building initramfs.
-
-*--*[*no-*]*ssh*::
-    Includes or excludes SSH (dropbear) support for remote LUKS keys.
-    When enabled, this will compile dropbear for you.
-
-*--ssh-authorized-keys-file*=<file>::
-    Specifies a user created authorized_keys file. By default genkernel
-    will use '/etc/dropbear/authorized_keys'.
-
-*--ssh-host-keys*=<create|create-from-host|runtime>::
-    When set to *create*, which is the default value, genkernel will embed
-    SSH host keys from '/etc/dropbear' and will create those keys when missing.
-    When set to *create-from-host*, genkernel will embed SSH host keys from
-    '/etc/dropbear' but will create those keys from '/etc/ssh' when missing
-    (not recommended for security reasons).
-    When set to *runtime*, genkernel will not embed any SSH host key in
-    initramfs and dropbear will generate needed host key at runtime (`dropbear -R`).
 
 *--boot-font*=<current|<file>|none>::
     When set to *current*, genkernel will use "setfont" to dump and embed
@@ -465,37 +393,6 @@ system is able to load multiple initramfs.
 
 *--genzimage*::
     Make and install kernelz image from 'arch/powerpc/boot/zImage.initrd'.
-
-*--*[*no-*]*luks*::
-    Includes or excludes LUKS support.
-    When enabled, this will compile cryptsetup for you.
-
-*--*[*no-*]*gpg*::
-    Includes or excludes support for GnuPG 1.x, the portable standalone branch
-    of GnuPG. A key can be made from
-    `gpg --symmetric -o /path/to/LUKS-key.gpg /path/to/LUKS-key` .
-    After that, re-point the *root_key* argument to the new .gpg file.
-
-*--*[*no-*]*keyctl*::
-    Includes or excludes support for keyutils keyctl.
-    This way a LUKS passphrase can be loaded into a keyring at boot time
-    to unlock multiple devices (root, swap, etc.) without retyping it for each
-    one.
-
-*--*[*no-*]*b2sum*::
-    Includes or excludes b2sum in the initramfs.
-    When enabled, this will compile coreutils' b2sum for you.
-
-*--*[*no-*]*busybox*::
-    Includes or excludes busybox in the initramfs.
-    When enabled, this will compile busybox for you.
-
-*--*[*no-*]*unionfs*::
-    Includes or excludes support for unionfs.
-    When enabled, this will compile unionfs-fuse for you.
-
-*--*[*no-*]*netboot*::
-    Creates or does not create a self-contained env in the initramfs.
 
 *--real-root*=<foo>::
     Specify a default for *real_root*= kernel option which will be

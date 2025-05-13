@@ -1,0 +1,2 @@
+  echo "	--splash=<theme>	Enable framebuffer splash using <theme>"
+  echo "	--splash-res=<res>	Select splash theme resolutions to install"
