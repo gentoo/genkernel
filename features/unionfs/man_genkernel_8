@@ -1,0 +1,3 @@
+*--*[*no-*]*unionfs*::
+    Includes or excludes support for unionfs.
+    When enabled, this will compile unionfs-fuse for you.

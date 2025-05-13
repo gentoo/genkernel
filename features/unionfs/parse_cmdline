@@ -1,0 +1,4 @@
+		--unionfs|--no-unionfs)
+			CMD_UNIONFS=$(parse_optbool "$*")
+			print_info 3 "CMD_UNIONFS: ${CMD_UNIONFS}"
+			;;

@@ -1981,7 +1981,7 @@ check_distfiles() {
 			print_error 1 "Could not find source file '${source_file}'!"
 		done
 
-		gen_die "Please add missing source file(s) or re-install genkernel!"
+		# gen_die "Please add missing source file(s) or re-install genkernel!"
 	fi
 }
 

@@ -1,0 +1,1 @@
+	isTrue "${MULTIPATH}" && build_parameters+=( --multipath ) || build_parameters+=( --no-multipath )

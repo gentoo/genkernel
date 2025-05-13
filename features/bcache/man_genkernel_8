@@ -1,0 +1,3 @@
+*--*[*no-*]*bcache*::
+    Includes or excludes block layer cache (bcache) support.
+    When enabled, this will compile bcache-tools for you.

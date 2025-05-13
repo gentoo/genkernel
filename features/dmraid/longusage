@@ -1,0 +1,2 @@
+  echo "	--dmraid		Include DMRAID support"
+  echo "	--no-dmraid		Exclude DMRAID support"

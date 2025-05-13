@@ -1,0 +1,3 @@
+*--*[*no-*]*lvm*::
+    Includes or excludes LVM support.
+    When enabled, this will compile LVM for you.

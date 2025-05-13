@@ -1,0 +1,16 @@
+*--*[*no-*]*ssh*::
+    Includes or excludes SSH (dropbear) support for remote LUKS keys.
+    When enabled, this will compile dropbear for you.
+
+*--ssh-authorized-keys-file*=<file>::
+    Specifies a user created authorized_keys file. By default genkernel
+    will use '/etc/dropbear/authorized_keys'.
+
+*--ssh-host-keys*=<create|create-from-host|runtime>::
+    When set to *create*, which is the default value, genkernel will embed
+    SSH host keys from '/etc/dropbear' and will create those keys when missing.
+    When set to *create-from-host*, genkernel will embed SSH host keys from
+    '/etc/dropbear' but will create those keys from '/etc/ssh' when missing
+    (not recommended for security reasons).
+    When set to *runtime*, genkernel will not embed any SSH host key in
+    initramfs and dropbear will generate needed host key at runtime (`dropbear -R`).

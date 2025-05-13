@@ -1,0 +1,7 @@
+# Add boot splash using splashutils
+#SPLASH="no"
+
+# Use this splash theme. If commented out - the "default" name theme is used.
+# Also, SPLASH="yes" needs to be enabled for this one to work.
+# This supersedes the "SPLASH_THEME" option in '/etc/conf.d/splash'.
+#SPLASH_THEME="gentoo"

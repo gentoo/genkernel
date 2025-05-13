@@ -4,7 +4,7 @@ ifeq ("$(PACKAGE_VERSION)", "")
 PACKAGE_VERSION = $(shell git describe --tags |sed 's,^v,,g')
 endif
 distdir = genkernel-$(PACKAGE_VERSION)
-MANPAGE = genkernel.8
+MANPAGE := genkernel.8
 # Add off-Git/generated files here that need to be shipped with releases
 EXTRA_DIST = ChangeLog $(KCONF)
 
@@ -31,6 +31,7 @@ FINAL_DEPS = genkernel.conf \
 	gen_moddeps.sh \
 	gen_package.sh \
 	gen_worker.sh \
+	load_features.sh \
 	path_expander.py
 
 SOFTWARE = BCACHE_TOOLS \
@@ -69,7 +70,15 @@ SOFTWARE = BCACHE_TOOLS \
 	ZLIB \
 	ZSTD
 
-SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)}")
+FEATURE_COMPONENTS = append_base_layout \
+	create_initramfs \
+	determine_real_args \
+	genkernel_conf \
+	initramfs_append_func \
+	longusage \
+	parse_cmdline
+
+SOFTWARE_VERSION = $(foreach entry, $(SOFTWARE), "VERSION_$(entry)=${VERSION_$(entry)} ")
 
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
@@ -179,6 +188,7 @@ $(BUILD_DIR)/build-config:
 	echo $(BINDIR) > $(BUILD_DIR)/BINDIR
 	echo $(SYSCONFDIR) > $(BUILD_DIR)/SYSCONFDIR
 	echo $(MANDIR) > $(BUILD_DIR)/MANDIR
+	echo $(GK_FEATURES) > $(BUILD_DIR)/GK_FEATURES
 	touch $(BUILD_DIR)/build-config
 
 $(BUILD_DIR)/software.sh:
@@ -186,14 +196,35 @@ $(BUILD_DIR)/software.sh:
 	printf '%s\n' $(SOFTWARE_VERSION) > $(BUILD_DIR)/temp/versions
 	cat $(BUILD_DIR)/temp/versions defaults/software.sh > $(BUILD_DIR)/software.sh
 
-$(BUILD_DIR)/doc/genkernel.8.txt:
-	install -D doc/genkernel.8.txt $(BUILD_DIR)/doc/genkernel.8.txt
+$(BUILD_DIR)/temp/%:
+	install -d $(@D)
+	echo > $@
+ifdef GK_FEATURES
+	cat $(addsuffix /$(@F) <(echo), $(addprefix features/,${GK_FEATURES})) > $@
+endif
+
+$(BUILD_DIR)/doc/genkernel.8.txt: $(BUILD_DIR)/temp/man_genkernel_8
+	install -d $(BUILD_DIR)/doc/
+	cat doc/genkernel.8.txt | sed \
+		-e '/\/\/ BEGIN FEATURES man_genkernel_8/ r $(BUILD_DIR)/temp/man_genkernel_8' \
+		> $(BUILD_DIR)/doc/genkernel.8.txt
+
+$(BUILD_DIR)/genkernel.conf: $(BUILD_DIR)/temp/genkernel_conf
+	cat genkernel.conf | sed \
+		-e '/# BEGIN FEATURES genkernel_conf/ r $(BUILD_DIR)/temp/genkernel_conf' \
+		> $(BUILD_DIR)/genkernel.conf
 
 $(BUILD_DIR)/%: %
 	install -D $< $@
 
-$(BUILD_DIR)/genkernel: $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/software.sh
+
+$(BUILD_DIR)/genkernel: \
+$(BUILD_DIR)/build-config $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS)) $(BUILD_DIR)/software.sh  \
+$(foreach i, $(file <$(BUILD_DIR)/GK_FEATURES), $(addprefix $(BUILD_DIR)/features/$(i)/, $(FEATURE_COMPONENTS))) \
+$(foreach i, $(GK_FEATURES), $(addprefix $(BUILD_DIR)/features/$(i)/, $(FEATURE_COMPONENTS)))
+# the last two lines above ensures the GK_FEATURES set by user is always included
 	install genkernel $(BUILD_DIR)/genkernel
+	@echo FEATURES: $(foreach i, $(file <$(BUILD_DIR)/GK_FEATURES), $(addprefix $(BUILD_DIR)/features/$(i)/, $(FEATURE_COMPONENTS))) 
 
 SHARE_DIRS = arch defaults gkbuilds modules netboot patches worker_modules
 
@@ -211,6 +242,7 @@ install: all
 	install -d $(DESTDIR)/$(PREFIX)/share/genkernel
 
 	cp -ra $(SHARE_DIRS) $(DESTDIR)/$(PREFIX)/share/genkernel/
+	cp -ra $(BUILD_DIR)/features $(DESTDIR)/$(PREFIX)/share/genkernel/
 
 	install -m 755 -t $(DESTDIR)/$(PREFIX)/share/genkernel $(addprefix $(BUILD_DIR)/,$(FINAL_DEPS))
 

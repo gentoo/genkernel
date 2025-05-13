@@ -1,0 +1,1 @@
+	isTrue "${LVM}" && build_parameters+=( --lvm ) || build_parameters+=( --no-lvm )

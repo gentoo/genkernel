@@ -1,0 +1,6 @@
+  echo "	--luks			Include LUKS support"
+  echo "	--no-luks		Exclude LUKS support"
+  echo "	--gpg			Include GPG-armored LUKS key support"
+  echo "	--no-gpg		Exclude GPG-armored LUKS key support"
+  echo "	--keyctl		Include keyctl support for loading LUKS passphrase into a keyring"
+  echo "	--no-keyctl		Exclude keyctl support for loading LUKS passphrase into a keyring"

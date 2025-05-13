@@ -1,0 +1,6 @@
+# Includes or excludes Plymouth from the initramfs. If "splash" is
+# passed at boot, Plymouth will be activated.
+#PLYMOUTH="no"
+
+# Embeds the given plymouth theme in the initramfs.
+#PLYMOUTH_THEME="text"

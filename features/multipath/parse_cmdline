@@ -1,0 +1,4 @@
+		--multipath|--no-multipath)
+			CMD_MULTIPATH=$(parse_optbool "$*")
+			print_info 3 "CMD_MULTIPATH: ${CMD_MULTIPATH}"
+			;;
