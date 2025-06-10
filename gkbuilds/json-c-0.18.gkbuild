@@ -1,0 +1,28 @@
+# Copyright 1999-2019 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+#
+src_configure() {
+	mkdir ../${P}_build
+	cd ../${P}_build
+
+	gkexec "cmake \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DBUILD_APPS=OFF \
+		-DDISABLE_EXTRA_LIBS=ON \
+		-DDISABLE_WERROR=ON \
+		-DENABLE_RDRAND=no \
+		-DENABLE_THREADING=no \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		../${P}"
+}
+
+src_compile() {
+	cd ../${P}_build
+	gkmake
+}
+
+src_install() {
+	cd ../${P}_build
+	gkmake DESTDIR="${D}" install
+}
