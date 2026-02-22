@@ -1,0 +1,32 @@
+append_dmraid() {
+	local PN=dmraid
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	populate_binpkg ${PN}
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	unpack "$(get_gkpkg_binpkg "${PN}")" "${TDIR}"
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	# Delete unneeded files
+	rm -rf \
+		usr/lib \
+		usr/share \
+		usr/include
+
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append dmraid to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}

@@ -1,0 +1,4 @@
+		--strace|--no-strace)
+			CMD_STRACE=$(parse_optbool "$*")
+			print_info 3 "CMD_STRACE: ${CMD_STRACE}"
+			;;

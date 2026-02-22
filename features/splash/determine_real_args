@@ -1,0 +1,1 @@
+	set_config_with_override BOOL   SPLASH                                CMD_SPLASH                                "no"

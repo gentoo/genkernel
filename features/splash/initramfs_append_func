@@ -1,0 +1,45 @@
+append_splash() {
+	local TDIR="${TEMP}/initramfs-splash-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+
+	if [ -z "${SPLASH_THEME}" -a -e /etc/conf.d/splash ]
+	then
+		source /etc/conf.d/splash &>/dev/null || gen_die "Failed to source '/etc/conf.d/splash'!"
+	fi
+
+	if [ -z "${SPLASH_THEME}" ]
+	then
+		SPLASH_THEME=default
+	fi
+
+	print_info 1 "$(get_indent 1)>> Installing splash [ using the ${SPLASH_THEME} theme ] ..."
+
+	local res_param=""
+	[ -n "${SPLASH_RES}" ] && res_param="-r ${SPLASH_RES}"
+	splash_geninitramfs -c "${TDIR}" ${res_param} ${SPLASH_THEME} \
+		|| gen_die "Failed to build splash cpio archive"
+
+	if [ -e "/usr/share/splashutils/initrd.splash" ]
+	then
+		mkdir -p "${TDIR}"/etc || gen_die "Failed to create '${TDIR}/etc'!"
+		cp -f /usr/share/splashutils/initrd.splash "${TDIR}"/etc/ 2>/dev/null \
+			gen_die "Failed to copy '/usr/share/splashutils/initrd.splash'!"
+	fi
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append splash to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}

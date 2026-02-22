@@ -1,0 +1,1 @@
+	set_config_with_override BOOL   B2SUM                                 CMD_B2SUM                                 "no"

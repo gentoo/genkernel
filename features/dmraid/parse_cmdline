@@ -1,0 +1,4 @@
+		--dmraid|--no-dmraid)
+			CMD_DMRAID=$(parse_optbool "$*")
+			print_info 3 "CMD_DMRAID: ${CMD_DMRAID}"
+			;;

@@ -1,0 +1,2 @@
+  echo "	--bcache		Include block layer cache (bcache) support"
+  echo "	--no-bcache		Exclude block layer cache (bcache) support"

@@ -1,0 +1,1 @@
+	isTrue "${SPLASH}" && build_parameters+=( --splash ) || build_parameters+=( --no-splash )

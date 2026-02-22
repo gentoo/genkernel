@@ -1,0 +1,4 @@
+		--e2fsprogs|--no-e2fsprogs)
+			CMD_E2FSPROGS=$(parse_optbool "$*")
+			print_info 3 "CMD_E2FSPROGS: ${CMD_E2FSPROGS}"
+			;;

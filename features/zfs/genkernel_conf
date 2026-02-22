@@ -1,0 +1,3 @@
+# Include support for zfs volume management.  If unset, genkernel will attempt
+# to autodetect and enable this when rootfs is on zfs.
+#ZFS="no"

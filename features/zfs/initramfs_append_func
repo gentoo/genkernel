@@ -1,0 +1,80 @@
+append_zfs() {
+	local PN=zfs
+	local TDIR="${TEMP}/initramfs-${PN}-temp"
+	if [ -d "${TDIR}" ]
+	then
+		rm -r "${TDIR}" || gen_die "Failed to clean out existing '${TDIR}'!"
+	fi
+
+	mkdir "${TDIR}" || gen_die "Failed to create '${TDIR}'!"
+
+	mkdir -p "${TDIR}"/etc/zfs || gen_die "Failed to create '${TDIR}/etc/zfs'!"
+
+	# Copy files to /etc/zfs
+	local i
+	for i in vdev_id.conf zdev.conf zpool.cache
+	do
+		if [ -f /etc/zfs/${i} ]
+		then
+			print_info 2 "$(get_indent 2)${PN}: >> Including ${i}"
+			cp -aL "/etc/zfs/${i}" "${TDIR}/etc/zfs/${i}" 2>/dev/null \
+				|| gen_die "Could not copy file '/etc/zfs/${i}' for ZFS"
+		fi
+	done
+
+	if [ -f "/etc/hostid" ]
+	then
+		local _hostid=$(hostid 2>/dev/null)
+		print_info 2 "$(get_indent 2)${PN}: >> Embedding hostid '${_hostid}' into initramfs ..."
+		cp -aL /etc/hostid "${TDIR}"/etc/hostid 2>/dev/null \
+			|| gen_die "Failed to copy /etc/hostid"
+
+		echo "${_hostid}" > "${TEMP}"/.embedded_hostid \
+			|| gen_die "Failed to record system's hostid!"
+	else
+		print_warning 1 "$(get_indent 2)${PN}: /etc/hostid not found; You must use 'spl_hostid' kernel command-line parameter!"
+	fi
+
+	copy_binaries "${TDIR}" /sbin/{mount.zfs,zdb,zfs,zpool}
+
+	local udevdir=$(get_udevdir)
+	local udevdir_initramfs="/usr/lib/udev"
+	local udev_files=( $(qlist -eC sys-fs/zfs:0 \
+		| grep -E -- "^${udevdir}")
+	)
+
+	if [ ${#udev_files[@]} -eq 0 ]
+	then
+		gen_die "Something went wrong: Did not found any udev-related files for sys-fs/zfs!"
+	fi
+
+	mkdir -p "${TDIR}"/usr/lib/udev/rules.d || gen_die "Failed to create '${TDIR}/usr/lib/udev/rules.d'!"
+
+	local udev_files
+	for udev_file in "${udev_files[@]}"
+	do
+		local dest_file="${TDIR%/}${udev_file/${udevdir}/${udevdir_initramfs}}"
+		cp -aL "${udev_file}" "${dest_file}" \
+			|| gen_die "Failed to copy '${udev_file}' to '${dest_file}'"
+
+		if [[ "${dest_file}" == *.rules ]]
+		then
+			print_info 5 "Updating UDEV dir in '${dest_file}' ..."
+			sed -i \
+				-e "s|${udevdir}|${udevdir_initramfs}|g" \
+				"${dest_file}" \
+				|| gen_die "Failed to update UDEV dir in '${dest_file}'"
+		fi
+	done
+
+	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
+	log_future_cpio_content
+	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
+		|| gen_die "Failed to append ${PN} to cpio!"
+
+	cd "${TEMP}" || die "Failed to chdir to '${TEMP}'!"
+	if isTrue "${CLEANUP}"
+	then
+		rm -rf "${TDIR}"
+	fi
+}

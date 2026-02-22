@@ -1,0 +1,13 @@
+*--*[*no-*]*splash*::
+    Installs, or not, framebuffer splash support into initramfs.
+
+*--*[*no-*]*splash*=<theme>::
+    If the extra argument is specified,  splash is forced using
+    <theme>  rather than the default theme specified in your splash
+    configuration. If *--no-splash* is specified, then splash is disabled.
+
+*--splash*=<theme>::
+    Enable framebuffer splash using <theme>.
+
+*--splash-res*=<resolutions>::
+    Select gensplash resolutions to include.

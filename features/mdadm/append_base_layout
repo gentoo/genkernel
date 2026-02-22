@@ -1,0 +1,1 @@
+	isTrue "${MDADM}" && build_parameters+=( --mdadm ) || build_parameters+=( --no-mdadm )

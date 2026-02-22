@@ -1,0 +1,1 @@
+	set_config_with_override BOOL   ZFS                                   CMD_ZFS                                   "$(rootfs_type_is zfs)"

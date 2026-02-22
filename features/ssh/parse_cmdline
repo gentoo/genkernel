@@ -1,0 +1,17 @@
+		--ssh|--no-ssh)
+			CMD_SSH=$(parse_optbool "$*")
+			print_info 3 "CMD_SSH: ${CMD_SSH}"
+			;;
+		--ssh-authorized-keys-file=*)
+			CMD_SSH_AUTHORIZED_KEYS_FILE="${*#*=}"
+			print_info 3 "CMD_SSH_AUTHORIZED_KEYS_FILE: ${CMD_SSH_AUTHORIZED_KEYS_FILE}"
+			;;
+		--ssh-host-keys=*)
+			CMD_SSH_HOST_KEYS="${*#*=}"
+			if ! isTrue "$(is_valid_ssh_host_keys_parameter_value "${CMD_SSH_HOST_KEYS}")"
+			then
+				echo "Error: --ssh-host-keys value '${CMD_SSH_HOST_KEYS}' is unsupported."
+				exit 1
+			fi
+			print_info 3 "CMD_SSH_HOST_KEYS: ${CMD_SSH_HOST_KEYS}"
+			;;

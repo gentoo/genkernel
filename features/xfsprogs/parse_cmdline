@@ -1,0 +1,4 @@
+		--xfsprogs|--no-xfsprogs)
+			CMD_XFSPROGS=$(parse_optbool "$*")
+			print_info 3 "CMD_XFSPROGS: ${CMD_XFSPROGS}"
+			;;

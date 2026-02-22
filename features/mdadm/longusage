@@ -1,0 +1,3 @@
+  echo "	--mdadm			Include MDADM/MDMON support"
+  echo "	--no-mdadm		Exclude MDADM/MDMON support"
+  echo "	--mdadm-config=<file>	Use file as mdadm.conf in initramfs"

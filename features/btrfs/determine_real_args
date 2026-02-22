@@ -1,0 +1,1 @@
+	set_config_with_override BOOL   BTRFS                                 CMD_BTRFS                                 "$(rootfs_type_is btrfs)"

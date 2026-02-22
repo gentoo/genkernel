@@ -1,0 +1,10 @@
+		--lvm|--no-lvm)
+			CMD_LVM=$(parse_optbool "$*")
+			print_info 3 "CMD_LVM: ${CMD_LVM}"
+			;;
+		--lvm2|--no-lvm2)
+			CMD_LVM=$(parse_optbool "$*")
+			print_info 3 "CMD_LVM: ${CMD_LVM}"
+			echo
+			print_warning 1 "Please use --lvm, as --lvm2 is deprecated."
+			;;

@@ -1,0 +1,4 @@
+		--zfs|--no-zfs)
+			CMD_ZFS=$(parse_optbool "$*")
+			print_info 3 "CMD_ZFS: ${CMD_ZFS}"
+			;;

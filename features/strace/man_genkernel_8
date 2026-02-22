@@ -1,0 +1,2 @@
+*--*[*no-*]*multipath*::
+    Includes or excludes strace support.
