@@ -158,3 +158,8 @@ HWOPTS="keymap cache modules virtio hyperv ${HWOPTS_BLK} bcache lvm dmraid multi
 # This is the set of default HWOPTS, in the order that they are loaded.
 # This is whitespace aligned with HWOPTS above.
 MY_HWOPTS="          modules virtio hyperv ${HWOPTS_BLK}        lvm dmraid           mdadm     fs       crypto"
+
+# Defaults for HTTPBOOT option to allow mounting the iso locally
+ISO_PATH="/iso"
+ISO_NAME="/gentoo.iso"
+ISO_TEMP="${ISO_PATH}/temp"
