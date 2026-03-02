@@ -180,10 +180,10 @@ findmediamount() {
 			then
 				good_msg "Attempting to mount media: ${x}" ${CRYPT_SILENT}
 
-				CDROOT_TYPE=$(determine_fs "${x}" "${CDROOT_TYPE}")
+				CDROOT_TYPE_TMP=$(determine_fs "${x}" "${CDROOT_TYPE}")
 
-				run mount -t ${CDROOT_TYPE} ${x} ${mntcddir} >/dev/null 2>&1
-				if [ $? -eq 0 ]
+				run mount -t ${CDROOT_TYPE_TMP} ${x} ${mntcddir} >/dev/null 2>&1
+				if [ $? -eq 0 ] || [ $? -eq 64 ]
 				then
 					if [ -n "${ISOBOOT}" ]
 					then
