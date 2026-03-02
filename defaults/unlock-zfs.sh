@@ -1,5 +1,31 @@
 #!/bin/sh
 
+print_usage() {
+	echo "Usage: $0 [-a] [-u]" >&2
+}
+
+case "${1}" in
+	-a)
+		ZFS_LOADKEY_FOR_ALL=1
+		;;
+	-u)
+		ZFS_LOADKEY_UNIFIED=1
+		;;
+	-h)
+		print_usage
+		exit 1
+		;;
+esac
+
+case "${2}" in
+	-a)
+		ZFS_LOADKEY_FOR_ALL=1
+		;;
+	-u)
+		ZFS_LOADKEY_UNIFIED=1
+		;;
+esac
+
 . /etc/initrd.defaults
 . /etc/initrd.scripts
 
@@ -62,7 +88,24 @@ main() {
 			break
 		fi
 
-		zfs load-key "${ZFS_ENCRYPTIONROOT}"
+		if [ "${ZFS_LOADKEY_FOR_ALL}" = '1' ]
+		then
+			if [ "${ZFS_LOADKEY_UNIFIED}" = '1' ]
+			then
+				read -s -p "Enter unified passphrase for ZFS dataset ${ZFS_ENCRYPTIONROOT}: " ZFS_PASSWORD
+
+				if [ -n "${ZFS_PASSWORD}" ]
+				then
+					yes "${ZFS_PASSWORD}" | run zfs load-key -a
+				fi
+				ZFS_PASSWORD="00000000000000000000000000000000"
+				unset ZFS_PASSWORD
+			else
+				zfs load-key -a
+			fi
+		else
+			zfs load-key "${ZFS_ENCRYPTIONROOT}"
+		fi
 
 		ZFS_KEYSTATUS="$(get_zfs_property "${REAL_ROOT}" keystatus)"
 		if [ "${ZFS_KEYSTATUS}" = 'available' ]
@@ -83,6 +126,7 @@ main() {
 	then
 		# Kill any running load-key prompt.
 		run pkill -f "load-key" >/dev/null 2>&1
+		run pkill -xf "head -n 1" >/dev/null 2>&1
 	fi
 }
 

@@ -882,9 +882,16 @@ when not set. This will allow remote user to provide answer through
 *domdadm*::
     Scan for RAID arrays on bootup.
 
-*dozfs*[=cache,force]::
-    Scan for bootable ZFS pools on bootup. Optionally use cachefile or force import if
-    necessary or perform both actions.
+*dozfs*[=cache,force,loadkeyall,unifiedkey]::
+    Scan for bootable ZFS pools on bootup. Optionally use cachefile or force
+    import if necessary or perform both actions.
+    Optionally ask to unlock all pools with "loadkeyall", equivalent to running
+    "zfs load-key -a".
+    Optionally try to use the same key to unlock all possible pools with
+    "unifiedkey". Must be used with "loadkeyall". Only passphrase is supported.
+    If the passphrase fails to unlock some pools, it will continue the boot
+    process unless it is the root pool.
+
 
 *domultipath*::
     Activate Multipath on bootup.
