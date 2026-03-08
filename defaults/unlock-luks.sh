@@ -97,7 +97,7 @@ main() {
 				fi
 
 				# At this point, keyfile or not, we're ready!
-				crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
+				crypt_filter "${gpg_cmd}cryptsetup${cryptsetup_options:+ }${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}"
 				crypt_filter_ret=$?
 
 				[ -e /dev/tty.org ] \
