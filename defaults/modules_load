@@ -38,5 +38,8 @@ MODULES_HYPERV="hv_sock hv_utils hv_vmbus hv_balloon hyperv-keyboard hid_hyperv 
 # Virtio
 MODULES_VIRTIO="virtio_scsi virtio_blk virtio_console virtio-rng virtio virtio_balloon virtio_input virtio_ring virtio_pci virtio_mmio virtio_crypto"
 
+# DRM
+MODULES_DRM="amdgpu hyperv_drm i915 nouveau virtio-gpu"
+
 # Misc
 MODULES_MISC="atkbd i8042"
