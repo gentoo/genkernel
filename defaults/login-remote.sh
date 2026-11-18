@@ -104,6 +104,7 @@ else
 	if [ -e "${ZFS_ENC_ENV_FILE}" ] && [ ! -f "${ZFS_ENC_OPENED_LOCKFILE}" ]
 	then
 		good_msg "${NORMAL}To remote unlock ZFS root device, run '${BOLD}unlock-zfs${NORMAL}'."
+		good_msg "${NORMAL}To unlock all ZFS devices, run '${bold}unlock-zfs -a${normal}', or '${bold}unlock-zfs -a -u${normal}' for unified key."
 	fi
 
 	echo
