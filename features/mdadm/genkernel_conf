@@ -1,0 +1,7 @@
+# Add MDRAID support
+#MDADM="no"
+
+# Specify a custom mdadm.conf.
+# By default the initramfs will be built *without* an mdadm.conf and will auto-detect
+# arrays during bootup.  Usually, this should not be needed.
+#MDADM_CONFIG="/etc/mdadm.conf"

@@ -1,0 +1,2 @@
+  echo "	--strace		Include strace support"
+  echo "	--no-strace		Exclude strace support"

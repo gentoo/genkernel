@@ -1,0 +1,3 @@
+	append_data 'luks' "${LUKS}"
+	append_data 'gpg' "${GPG}"
+	append_data 'keyutils' "${KEYCTL}"

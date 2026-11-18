@@ -1,0 +1,1 @@
+	isTrue "${SSH}" && build_parameters+=( --ssh ) || build_parameters+=( --no-ssh )

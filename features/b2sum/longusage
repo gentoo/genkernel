@@ -1,0 +1,3 @@
+  # b2sum
+  echo "	--b2sum			Include b2sum"
+  echo "	--no-b2sum		Exclude b2sum"

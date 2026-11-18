@@ -1,0 +1,36 @@
+		--gensplash=*)
+			CMD_SPLASH="yes"
+			SPLASH_THEME="${*#*=}"
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
+			echo
+			print_warning 1 "Please use --splash, as --gensplash is deprecated."
+			;;
+		--gensplash|--no-gensplash)
+			CMD_SPLASH=$(parse_optbool "$*")
+			SPLASH_THEME='default'
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			echo
+			print_warning 1 "Please use --splash, as --gensplash is deprecated."
+			;;
+		--splash=*)
+			CMD_SPLASH="yes"
+			SPLASH_THEME="${*#*=}"
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			print_info 3 "SPLASH_THEME: ${SPLASH_THEME}"
+			;;
+		--splash|--no-splash)
+			CMD_SPLASH=$(parse_optbool "$*")
+			SPLASH_THEME='default'
+			print_info 3 "CMD_SPLASH: ${CMD_SPLASH}"
+			;;
+		--gensplash-res=*)
+			SPLASH_RES="${*#*=}"
+			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
+			echo
+			print_warning 1 "Please use --splash-res, as --gensplash-res is deprecated."
+			;;
+		--splash-res=*)
+			SPLASH_RES="${*#*=}"
+			print_info 3 "SPLASH_RES: ${SPLASH_RES}"
+			;;

@@ -1,0 +1,3 @@
+	isTrue "${KEYCTL}" && build_parameters+=( --keyctl ) || build_parameters+=( --no-keyctl )
+	isTrue "${GPG}" && build_parameters+=( --gpg ) || build_parameters+=( --no-gpg )
+	isTrue "${LUKS}" && build_parameters+=( --luks ) || build_parameters+=( --no-luks )

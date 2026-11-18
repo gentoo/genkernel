@@ -1,0 +1,8 @@
+# Add LUKS support
+#LUKS="no"
+
+# Add GnuPG support
+#GPG="no"
+
+# Add keyctl support for loading LUKS passphrase into a keyring
+#KEYCTL="no"

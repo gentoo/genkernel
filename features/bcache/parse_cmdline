@@ -1,0 +1,4 @@
+		--bcache|--no-bcache)
+			CMD_BCACHE=$(parse_optbool "$*")
+			print_info 3 "CMD_BCACHE: ${CMD_BCACHE}"
+			;;

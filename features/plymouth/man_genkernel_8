@@ -1,0 +1,6 @@
+*--*[*no-*]*plymouth*::
+    Includes or excludes Plymouth from the initramfs. If "splash" is
+    passed at boot, Plymouth will be activated.
+
+*--plymouth-theme*=<theme>::
+    Embeds the given Plymouth theme into the initramfs.

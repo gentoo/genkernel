@@ -1,0 +1,2 @@
+# Include support for unionfs
+#UNIONFS="no"

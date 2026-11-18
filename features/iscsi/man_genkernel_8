@@ -1,0 +1,3 @@
+*--*[*no-*]*iscsi*::
+    Includes or excludes iSCSI support.
+    When enabled, this will compile open-iscsi for you.

@@ -1,0 +1,5 @@
+	append_data 'zfs' "${ZFS}"
+	if isTrue "${ZFS}"
+	then
+		append_data 'libgcc_s'
+	fi
