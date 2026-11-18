@@ -2164,7 +2164,7 @@ openLUKS() {
 			fi
 
 			# At this point, {header,key}file or not, we're ready!
-			crypt_filter "${gpg_cmd}cryptsetup ${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}" "${ASK_PASS}"
+			crypt_filter "${gpg_cmd}cryptsetup${cryptsetup_options:+ }${cryptsetup_options} luksOpen ${LUKS_DEVICE} ${LUKS_NAME}" "${ASK_PASS}"
 			crypt_filter_ret=$?
 
 			[ -e /dev/tty.org ] \
