@@ -416,6 +416,7 @@ determine_real_args() {
 	set_config_with_override BOOL   SSH                                   CMD_SSH                                   "no"
 	set_config_with_override STRING SSH_AUTHORIZED_KEYS_FILE              CMD_SSH_AUTHORIZED_KEYS_FILE              "/etc/dropbear/authorized_keys"
 	set_config_with_override STRING SSH_HOST_KEYS                         CMD_SSH_HOST_KEYS                         "create"
+	set_config_with_override BOOL   SEDUTIL                               CMD_SEDUTIL                               "no"
 	set_config_with_override BOOL   STRACE                                CMD_STRACE                                "no"
 	set_config_with_override BOOL   BCACHE                                CMD_BCACHE                                "no"
 	set_config_with_override BOOL   LVM                                   CMD_LVM                                   "no"

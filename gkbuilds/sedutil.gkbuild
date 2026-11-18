@@ -1,0 +1,25 @@
+# Copyright 1999-2021 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+#
+
+src_prepare() {
+        default
+
+        gkautoreconf
+}
+
+src_configure() {
+	append-ldflags -static
+
+        local myopts=(
+        )
+
+        gkconf "${myopts[@]}"
+}
+
+src_install() {
+	default
+
+	rm -rf "${D}"/usr/sbin/linuxpba
+	rm -rf "${D}"/usr/share
+}

@@ -582,6 +582,10 @@ parse_cmdline() {
 			fi
 			print_info 3 "CMD_SSH_HOST_KEYS: ${CMD_SSH_HOST_KEYS}"
 			;;
+		--sedutil|--no-sedutil)
+			CMD_SEDUTIL=$(parse_optbool "$*")
+			print_info 3 "CMD_SEDUTIL: ${CMD_SEDUTIL}"
+			;;
 		--strace|--no-strace)
 			CMD_STRACE=$(parse_optbool "$*")
 			print_info 3 "CMD_STRACE: ${CMD_STRACE}"
